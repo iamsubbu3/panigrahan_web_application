@@ -222,30 +222,30 @@ variable "private_instance_name_1" {
   type = string
 }
 
-# --- Private Instance 3 ---
-variable "private_instance_ami_2" {
-  type = string
-}
+# # --- Private Instance 3 ---
+# variable "private_instance_ami_2" {
+#   type = string
+# }
 
-variable "private_instance_type_2" {
-  type = string
-}
+# variable "private_instance_type_2" {
+#   type = string
+# }
 
-variable "private_instance_key_pair_2" {
-  type = string
-}
+# variable "private_instance_key_pair_2" {
+#   type = string
+# }
 
-variable "private_instance_volume_size_2" {
-  type = number
-}
+# variable "private_instance_volume_size_2" {
+#   type = number
+# }
 
-variable "private_instance_volume_type_2" {
-  type = string
-}
+# variable "private_instance_volume_type_2" {
+#   type = string
+# }
 
-variable "private_instance_name_2" {
-  type = string
-}
+# variable "private_instance_name_2" {
+#   type = string
+# }
 
 ################################################################################
 # 7. S3 BACKEND STORAGE
