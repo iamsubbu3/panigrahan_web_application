@@ -60,20 +60,20 @@ eks_jump_server = "0.0.0.0/0"
 ################################################################################
 # Instance 1
 public_instance_ami_1              = "ami-091138d0f0d41ff90"
-public_instance_type_1             = "t2.medium"
+public_instance_type_1             = "t3.micro"
 public_instance_key_pair_1         = "panigrahan-iamsubbu-keypair"
 public_instance_associate_ip_add_1 = true
 public_instance_volume_size_1      = 20
 public_instance_volume_type_1      = "gp3"
-public_instance_name_1             = "Bastion-Ansible-Server"
+public_instance_name_1             = "Jenkinks-Server"
 
-# Instance 2
-private_instance_ami_1              = "ami-091138d0f0d41ff90"
-private_instance_type_1             = "t2.medium"
-private_instance_key_pair_1         = "panigrahan-iamsubbu-keypair"
-private_instance_volume_size_1      = 20
-private_instance_volume_type_1      = "gp3"
-private_instance_name_1             = "Jenkins-server"
+# # Instance 2
+# private_instance_ami_1              = "ami-091138d0f0d41ff90"
+# private_instance_type_1             = "t3.micro"
+# private_instance_key_pair_1         = "panigrahan-iamsubbu-keypair"
+# private_instance_volume_size_1      = 20
+# private_instance_volume_type_1      = "gp3"
+# private_instance_name_1             = "K8s-server"
 
 # # Instance 3
 # private_instance_ami_2              = "ami-091138d0f0d41ff90"

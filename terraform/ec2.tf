@@ -22,27 +22,27 @@ resource "aws_instance" "public_instance-1" {
   }
 }
 
-################################################################################
-# 2. PRIVATE INSTANCE 1
-# Located in Private Subnet 1
-################################################################################
+# ################################################################################
+# # 2. PRIVATE INSTANCE 1
+# # Located in Private Subnet 1
+# ################################################################################
 
-resource "aws_instance" "private_instance-1" {
-  ami                         = var.private_instance_ami_1
-  instance_type               = var.private_instance_type_1
-  vpc_security_group_ids      = [aws_security_group.sg.id]
-  subnet_id                   = aws_subnet.private-subnet-1.id
-  key_name                    = var.private_instance_key_pair_1
+# resource "aws_instance" "private_instance-1" {
+#   ami                         = var.private_instance_ami_1
+#   instance_type               = var.private_instance_type_1
+#   vpc_security_group_ids      = [aws_security_group.sg.id]
+#   subnet_id                   = aws_subnet.private-subnet-1.id
+#   key_name                    = var.private_instance_key_pair_1
 
-  root_block_device {
-    volume_size = var.private_instance_volume_size_1
-    volume_type = var.private_instance_volume_type_1
-  }
+#   root_block_device {
+#     volume_size = var.private_instance_volume_size_1
+#     volume_type = var.private_instance_volume_type_1
+#   }
 
-  tags = {
-    Name = var.private_instance_name_1
-  }
-}
+#   tags = {
+#     Name = var.private_instance_name_1
+#   }
+# }
 
 # ################################################################################
 # # 3. PRIVATE INSTANCE 2

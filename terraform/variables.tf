@@ -197,30 +197,30 @@ variable "public_instance_name_1" {
   type = string
 }
 
-# --- Private Instance 1 ---
-variable "private_instance_ami_1" {
-  type = string
-}
+# # --- Private Instance 1 ---
+# variable "private_instance_ami_1" {
+#   type = string
+# }
 
-variable "private_instance_type_1" {
-  type = string
-}
+# variable "private_instance_type_1" {
+#   type = string
+# }
 
-variable "private_instance_key_pair_1" {
-  type = string
-}
+# variable "private_instance_key_pair_1" {
+#   type = string
+# }
 
-variable "private_instance_volume_size_1" {
-  type = number
-}
+# variable "private_instance_volume_size_1" {
+#   type = number
+# }
 
-variable "private_instance_volume_type_1" {
-  type = string
-}
+# variable "private_instance_volume_type_1" {
+#   type = string
+# }
 
-variable "private_instance_name_1" {
-  type = string
-}
+# variable "private_instance_name_1" {
+#   type = string
+# }
 
 # # --- Private Instance 3 ---
 # variable "private_instance_ami_2" {
