@@ -159,13 +159,8 @@ variable "my_ip" {
   type        = string
 }
 
-variable "eks_jump_server" {
-  description = "Allowed CIDR for EKS API access"
-  type        = string
-}
-
 ################################################################################
-# 5. EC2 INSTANCES (Jenkins/Ansible)
+# 5. EC2 INSTANCES (Jenkins)
 ################################################################################
 
 # --- Public Instance 1 ---
@@ -196,56 +191,6 @@ variable "public_instance_volume_type_1" {
 variable "public_instance_name_1" {
   type = string
 }
-
-# # --- Private Instance 1 ---
-# variable "private_instance_ami_1" {
-#   type = string
-# }
-
-# variable "private_instance_type_1" {
-#   type = string
-# }
-
-# variable "private_instance_key_pair_1" {
-#   type = string
-# }
-
-# variable "private_instance_volume_size_1" {
-#   type = number
-# }
-
-# variable "private_instance_volume_type_1" {
-#   type = string
-# }
-
-# variable "private_instance_name_1" {
-#   type = string
-# }
-
-# # --- Private Instance 3 ---
-# variable "private_instance_ami_2" {
-#   type = string
-# }
-
-# variable "private_instance_type_2" {
-#   type = string
-# }
-
-# variable "private_instance_key_pair_2" {
-#   type = string
-# }
-
-# variable "private_instance_volume_size_2" {
-#   type = number
-# }
-
-# variable "private_instance_volume_type_2" {
-#   type = string
-# }
-
-# variable "private_instance_name_2" {
-#   type = string
-# }
 
 ################################################################################
 # 7. S3 BACKEND STORAGE

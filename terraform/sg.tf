@@ -33,7 +33,7 @@ resource "aws_security_group" "sg" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = [var.eks_jump_server]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   # --- Application Traffic ---
@@ -58,6 +58,14 @@ resource "aws_security_group" "sg" {
     description = "SonarQube traffic"
     from_port   = 9000
     to_port     = 9000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "MySQL DB traffic"
+    from_port   = 3307
+    to_port     = 3307
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }

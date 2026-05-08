@@ -52,36 +52,19 @@ private_rt_name      = "panigrahan-private-rt"
 # 3. SECURITY GROUPS
 ################################################################################
 sg_name         = "panigrahan-sg"
-my_ip           = ""
-eks_jump_server = "0.0.0.0/0"
+my_ip           = ["49.206.131.43/32", "157.50.80.166/32", ""]
 
 ################################################################################
-# 4. EC2 PUBLIC & PRIVATE INSTANCES (Jenkins/Ansible)
+# 4. EC2 INSTANCES (Jenkins)
 ################################################################################
 # Instance 1
 public_instance_ami_1              = "ami-091138d0f0d41ff90"
-public_instance_type_1             = "t3.micro"
-public_instance_key_pair_1         = "panigrahan-iamsubbu-keypair"
+public_instance_type_1             = "t2.medium"
+public_instance_key_pair_1         = ["panigrahan-iamsubbu-keypair","karthik-key_pair"]
 public_instance_associate_ip_add_1 = true
 public_instance_volume_size_1      = 20
 public_instance_volume_type_1      = "gp3"
-public_instance_name_1             = "Jenkinks-Server"
-
-# # Instance 2
-# private_instance_ami_1              = "ami-091138d0f0d41ff90"
-# private_instance_type_1             = "t3.micro"
-# private_instance_key_pair_1         = "panigrahan-iamsubbu-keypair"
-# private_instance_volume_size_1      = 20
-# private_instance_volume_type_1      = "gp3"
-# private_instance_name_1             = "K8s-server"
-
-# # Instance 3
-# private_instance_ami_2              = "ami-091138d0f0d41ff90"
-# private_instance_type_2             = "t2.medium"
-# private_instance_key_pair_2         = "panigrahan-iamsubbu-keypair"
-# private_instance_volume_size_2      = 20
-# private_instance_volume_type_2      = "gp3"
-# private_instance_name_2             = "K8s-server"
+public_instance_name_1             = "Panigrahan-Server"
 
 ################################################################################
 # 6. S3 BACKEND / STATE STORAGE

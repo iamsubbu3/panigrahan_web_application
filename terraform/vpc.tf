@@ -35,6 +35,7 @@ resource "aws_subnet" "public-subnet-1" {
   tags = {
     Name                     = var.public_subnet_1_name
     "kubernetes.io/role/elb" = "1"
+    "kubernetes.io/cluster/panigrahan" = "shared"
   }
 }
 
@@ -47,6 +48,7 @@ resource "aws_subnet" "public-subnet-2" {
   tags = {
     Name                     = var.public_subnet_2_name
     "kubernetes.io/role/elb" = "1"
+    "kubernetes.io/cluster/panigrahan" = "shared"
   }
 }
 
@@ -59,6 +61,7 @@ resource "aws_subnet" "public-subnet-3" {
   tags = {
     Name                     = var.public_subnet_3_name
     "kubernetes.io/role/elb" = "1"
+    "kubernetes.io/cluster/panigrahan" = "shared"
   }
 }
 
@@ -71,6 +74,7 @@ resource "aws_subnet" "private-subnet-1" {
   tags = {
     Name                              = var.private_subnet_1_name
     "kubernetes.io/role/internal-elb" = "1"
+    "kubernetes.io/cluster/panigrahan" = "shared"
   }
 }
 
@@ -82,6 +86,7 @@ resource "aws_subnet" "private-subnet-2" {
   tags = {
     Name                              = var.private_subnet_2_name
     "kubernetes.io/role/internal-elb" = "1"
+    "kubernetes.io/cluster/panigrahan" = "shared"
   }
 }
 
@@ -93,6 +98,7 @@ resource "aws_subnet" "private-subnet-3" {
   tags = {
     Name                              = var.private_subnet_3_name
     "kubernetes.io/role/internal-elb" = "1"
+    "kubernetes.io/cluster/panigrahan" = "shared"
   }
 }
 
