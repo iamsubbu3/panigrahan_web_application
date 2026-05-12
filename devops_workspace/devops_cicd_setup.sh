@@ -1,16 +1,16 @@
 #!/bin/bash
 
-set -euo pipefail
+set -e
 
 export DEBIAN_FRONTEND=noninteractive
 
 echo "=================================================================="
-echo " DevSecOps Setup Script (2026 Updated)"
+echo " DevSecOps Setup Script (Ubuntu 24.04 LTS - 2026)"
 echo " Docker | Jenkins | SonarQube | Trivy | AWS CLI | kubectl | eksctl"
 echo "=================================================================="
 
 # ----------------------------------------------------------
-# Verify Ubuntu
+# VERIFY UBUNTU
 # ----------------------------------------------------------
 
 if ! command -v apt >/dev/null 2>&1; then
@@ -19,17 +19,19 @@ if ! command -v apt >/dev/null 2>&1; then
 fi
 
 # ----------------------------------------------------------
-# Detect Architecture
+# ARCHITECTURE DETECTION
 # ----------------------------------------------------------
 
 ARCH=$(uname -m)
 
 case $ARCH in
     x86_64)
-        SYS_ARCH="amd64"
+        AWS_ARCH="x86_64"
+        K8S_ARCH="amd64"
         ;;
     aarch64|arm64)
-        SYS_ARCH="arm64"
+        AWS_ARCH="aarch64"
+        K8S_ARCH="arm64"
         ;;
     *)
         echo "❌ Unsupported architecture: $ARCH"
@@ -37,13 +39,18 @@ case $ARCH in
         ;;
 esac
 
-echo "Detected architecture: ${SYS_ARCH}"
+echo "Detected AWS CLI Architecture : ${AWS_ARCH}"
+echo "Detected Kubernetes Architecture : ${K8S_ARCH}"
 
 # ----------------------------------------------------------
-# Base Packages
+# SYSTEM UPDATE
 # ----------------------------------------------------------
 
 sudo apt update -y
+
+# ----------------------------------------------------------
+# INSTALL BASE PACKAGES
+# ----------------------------------------------------------
 
 sudo apt install -y \
     curl \
@@ -54,10 +61,39 @@ sudo apt install -y \
     ca-certificates \
     software-properties-common \
     apt-transport-https \
-    jq
+    jq \
+    git
 
 # ----------------------------------------------------------
-# Docker Installation (Official)
+# INSTALL JAVA 21 FIRST
+# ----------------------------------------------------------
+
+if ! java -version 2>/dev/null | grep -q "21"; then
+
+    echo "Installing Java 21..."
+
+    sudo apt install -y fontconfig
+
+    sudo apt install -y openjdk-21-jre
+
+fi
+
+# ----------------------------------------------------------
+# VERIFY JAVA
+# ----------------------------------------------------------
+
+echo "Verifying Java Installation..."
+
+java -version
+
+# ----------------------------------------------------------
+# REFRESH JAVA CERTIFICATES
+# ----------------------------------------------------------
+
+sudo update-ca-certificates -f || true
+
+# ----------------------------------------------------------
+# INSTALL DOCKER
 # ----------------------------------------------------------
 
 if ! command -v docker >/dev/null 2>&1; then
@@ -67,7 +103,7 @@ if ! command -v docker >/dev/null 2>&1; then
     sudo install -m 0755 -d /etc/apt/keyrings
 
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-        | sudo gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
+        | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
     sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
@@ -89,32 +125,19 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 
 sudo systemctl enable docker
+
 sudo systemctl restart docker
 
 # ----------------------------------------------------------
-# Docker Permissions
+# DOCKER PERMISSIONS
 # ----------------------------------------------------------
 
-ACTUAL_USER=${SUDO_USER:-$USER}
+CURRENT_USER=${SUDO_USER:-ubuntu}
 
-sudo usermod -aG docker "$ACTUAL_USER"
-
-# ----------------------------------------------------------
-# Java 21 Runtime
-# ----------------------------------------------------------
-
-if ! java -version 2>&1 | grep -q "21"; then
-
-    echo "Installing Java 21..."
-
-    sudo apt install -y \
-        fontconfig \
-        openjdk-21-jre
-
-fi
+sudo usermod -aG docker ${CURRENT_USER}
 
 # ----------------------------------------------------------
-# Jenkins Installation (Official 2026)
+# INSTALL JENKINS
 # ----------------------------------------------------------
 
 if ! dpkg -l | grep -q jenkins; then
@@ -124,11 +147,11 @@ if ! dpkg -l | grep -q jenkins; then
     sudo mkdir -p /etc/apt/keyrings
 
     curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key \
-      | sudo tee /etc/apt/keyrings/jenkins-keyring.asc > /dev/null
+        | sudo tee /etc/apt/keyrings/jenkins-keyring.asc > /dev/null
 
     echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] \
-      https://pkg.jenkins.io/debian-stable binary/" \
-      | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+    https://pkg.jenkins.io/debian-stable binary/" \
+        | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
 
     sudo apt update -y
 
@@ -139,22 +162,23 @@ fi
 sudo systemctl daemon-reload
 
 sudo systemctl enable jenkins
-sudo systemctl restart jenkins
+
+sudo systemctl restart jenkins || true
 
 # ----------------------------------------------------------
-# Add Jenkins To Docker Group
+# ADD JENKINS TO DOCKER GROUP
 # ----------------------------------------------------------
 
 if id "jenkins" &>/dev/null; then
 
     sudo usermod -aG docker jenkins
 
-    sudo systemctl restart jenkins
+    sudo systemctl restart jenkins || true
 
 fi
 
 # ----------------------------------------------------------
-# AWS CLI v2
+# INSTALL AWS CLI v2
 # ----------------------------------------------------------
 
 if ! command -v aws >/dev/null 2>&1; then
@@ -162,19 +186,28 @@ if ! command -v aws >/dev/null 2>&1; then
     echo "Installing AWS CLI..."
 
     curl -fsSL \
-      "https://awscli.amazonaws.com/awscli-exe-linux-${SYS_ARCH}.zip" \
+      "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" \
       -o awscliv2.zip
 
-    unzip -oq awscliv2.zip
+    unzip -o awscliv2.zip
 
-    sudo ./aws/install --update
+    sudo ./aws/install \
+      --bin-dir /usr/local/bin \
+      --install-dir /usr/local/aws-cli \
+      --update
 
     rm -rf aws awscliv2.zip
 
 fi
 
 # ----------------------------------------------------------
-# kubectl Installation
+# VERIFY AWS CLI
+# ----------------------------------------------------------
+
+aws --version
+
+# ----------------------------------------------------------
+# INSTALL KUBECTL
 # ----------------------------------------------------------
 
 if ! command -v kubectl >/dev/null 2>&1; then
@@ -183,8 +216,8 @@ if ! command -v kubectl >/dev/null 2>&1; then
 
     KUBECTL_VERSION=$(curl -fsSL https://dl.k8s.io/release/stable.txt)
 
-    curl -fsSLo kubectl \
-      "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${SYS_ARCH}/kubectl"
+    curl -fsSLO \
+      "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${K8S_ARCH}/kubectl"
 
     chmod +x kubectl
 
@@ -193,7 +226,13 @@ if ! command -v kubectl >/dev/null 2>&1; then
 fi
 
 # ----------------------------------------------------------
-# eksctl Installation
+# VERIFY KUBECTL
+# ----------------------------------------------------------
+
+kubectl version --client
+
+# ----------------------------------------------------------
+# INSTALL EKSCTL
 # ----------------------------------------------------------
 
 if ! command -v eksctl >/dev/null 2>&1; then
@@ -205,29 +244,37 @@ if ! command -v eksctl >/dev/null 2>&1; then
       | jq -r '.tag_name')
 
     curl -fsSL \
-      "https://github.com/eksctl-io/eksctl/releases/download/${EKSCTL_VERSION}/eksctl_Linux_${SYS_ARCH}.tar.gz" \
+      "https://github.com/eksctl-io/eksctl/releases/download/${EKSCTL_VERSION}/eksctl_Linux_${K8S_ARCH}.tar.gz" \
       -o eksctl.tar.gz
 
     tar -xzf eksctl.tar.gz
 
     sudo mv eksctl /usr/local/bin/
 
-    chmod +x /usr/local/bin/eksctl
+    sudo chmod +x /usr/local/bin/eksctl
 
     rm -f eksctl.tar.gz
 
 fi
 
 # ----------------------------------------------------------
-# Trivy Installation
+# VERIFY EKSCTL
+# ----------------------------------------------------------
+
+eksctl version
+
+# ----------------------------------------------------------
+# INSTALL TRIVY
 # ----------------------------------------------------------
 
 if ! command -v trivy >/dev/null 2>&1; then
 
     echo "Installing Trivy..."
 
+    sudo mkdir -p /etc/apt/keyrings
+
     curl -fsSL https://aquasecurity.github.io/trivy-repo/deb/public.key \
-      | sudo gpg --dearmor --yes -o /etc/apt/keyrings/trivy.gpg
+      | sudo gpg --dearmor -o /etc/apt/keyrings/trivy.gpg
 
     echo \
       "deb [signed-by=/etc/apt/keyrings/trivy.gpg] \
@@ -241,30 +288,43 @@ if ! command -v trivy >/dev/null 2>&1; then
 fi
 
 # ----------------------------------------------------------
-# SonarQube Kernel Setting
+# VERIFY TRIVY
 # ----------------------------------------------------------
 
-echo "Configuring vm.max_map_count..."
+trivy --version
 
-sudo sysctl -w vm.max_map_count=262144
+# ----------------------------------------------------------
+# SONARQUBE KERNEL SETTINGS
+# ----------------------------------------------------------
 
-if ! grep -q "vm.max_map_count=262144" /etc/sysctl.conf; then
+echo "Configuring kernel settings for SonarQube..."
 
-    echo "vm.max_map_count=262144" \
+sudo sysctl -w vm.max_map_count=524288
+
+sudo sysctl -w fs.file-max=131072
+
+if ! grep -q "vm.max_map_count=524288" /etc/sysctl.conf; then
+    echo "vm.max_map_count=524288" \
       | sudo tee -a /etc/sysctl.conf
+fi
 
+if ! grep -q "fs.file-max=131072" /etc/sysctl.conf; then
+    echo "fs.file-max=131072" \
+      | sudo tee -a /etc/sysctl.conf
 fi
 
 # ----------------------------------------------------------
-# SonarQube Deployment
+# INSTALL SONARQUBE
 # ----------------------------------------------------------
 
 if ! sudo docker ps -a --format '{{.Names}}' | grep -q "^sonarqube$"; then
 
-    echo "Starting SonarQube..."
+    echo "Installing SonarQube..."
 
     sudo docker volume create sonarqube_data
+
     sudo docker volume create sonarqube_extensions
+
     sudo docker volume create sonarqube_logs
 
     sudo docker run -d \
@@ -280,19 +340,20 @@ if ! sudo docker ps -a --format '{{.Names}}' | grep -q "^sonarqube$"; then
 fi
 
 # ----------------------------------------------------------
-# Final Service Restart
+# FINAL SERVICE RESTART
 # ----------------------------------------------------------
 
 sudo systemctl restart docker
-sudo systemctl restart jenkins
+
+sudo systemctl restart jenkins || true
 
 # ----------------------------------------------------------
-# Installed Versions
+# INSTALLED VERSIONS
 # ----------------------------------------------------------
 
 echo
 echo "=========================================================="
-echo " Installed Versions"
+echo " INSTALLED TOOL VERSIONS"
 echo "=========================================================="
 
 docker --version || true
@@ -304,37 +365,37 @@ trivy --version || true
 jenkins --version || true
 
 # ----------------------------------------------------------
-# URLs
+# ACCESS URLS
 # ----------------------------------------------------------
 
 echo
 echo "=========================================================="
-echo " Access URLs"
+echo " ACCESS URLS"
 echo "=========================================================="
 
 echo "Jenkins   : http://<EC2-PUBLIC-IP>:8080"
+
 echo "SonarQube : http://<EC2-PUBLIC-IP>:9000"
 
 # ----------------------------------------------------------
-# Jenkins Password
+# JENKINS INITIAL PASSWORD
 # ----------------------------------------------------------
 
 echo
 echo "=========================================================="
-echo " Jenkins Initial Password"
+echo " JENKINS INITIAL ADMIN PASSWORD"
 echo "=========================================================="
 
 sudo cat /var/lib/jenkins/secrets/initialAdminPassword || true
 
 echo
 echo "=========================================================="
-echo " Setup Completed Successfully ✅"
+echo " SETUP COMPLETED SUCCESSFULLY ✅"
 echo "=========================================================="
 
 echo "IMPORTANT:"
-echo "1. Run: newgrp docker"
-echo "2. Or reboot server after setup"
-echo "3. Allow SG ports:"
+echo "1. Reboot server after setup"
+echo "2. Open Security Group Ports:"
 echo "   - 8080 (Jenkins)"
 echo "   - 9000 (SonarQube)"
 echo "=========================================================="
