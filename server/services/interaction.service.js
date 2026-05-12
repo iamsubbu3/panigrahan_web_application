@@ -5,9 +5,22 @@ const { Op } = Sequelize;
 /* ---------------- INTERACTIONS ---------------- */
 
 exports.createInteraction = async (data) => {
-  const interaction = await ProfileInteraction.create(data);
-  if (data.profileid) await touchLastInteraction(data.profileid);
-  return interaction;
+  // console.log(data);
+  const prof = await Profile.findOne({
+    where: {
+      orgid: data.orgid,
+      client_id: data.clientid
+    }
+  });
+
+  if (prof) {
+    data.profileid = prof.id;
+    const interaction = await ProfileInteraction.create(data);
+    if (data.profileid) await touchLastInteraction(data.profileid);
+    return interaction;
+  } else {
+    throw new Error(`No profile found for client_id ${data.clientid}`);
+  }
 };
 
 exports.listByProfile = async (profileid) => {
@@ -17,14 +30,14 @@ exports.listByProfile = async (profileid) => {
       {
         model: Profile,
         as: "profile",
-        attributes: ["id", "firstname", "lastname"],
+        attributes: ["id", "firstname", "lastname", "client_id", "orgid"],
       },
     ],
     order: [["createdat", "DESC"]],
   });
 };
 
-exports.search = async ({ from, to, profileid, staffid }) => {
+exports.search = async ({ from, to, profileid, staffid, orgid, status }) => {
   const where = { is_deleted: 0 };
 
   if (from && to) {
@@ -36,7 +49,20 @@ exports.search = async ({ from, to, profileid, staffid }) => {
     };
   }
 
-  if (profileid) where.profileid = profileid;
+  if (profileid) {
+    const prof = await Profile.findOne({
+      where: {
+        client_id: profileid,
+        orgid: orgid
+      }
+    });
+
+    if (prof) {
+      where.profileid = prof.id;
+    } else {
+      throw new Error(`No profile found for client_id ${profileid}`);
+    }
+  } 
   if (staffid) where.userid = staffid;
 
   return ProfileInteraction.findAll({
@@ -45,7 +71,7 @@ exports.search = async ({ from, to, profileid, staffid }) => {
       {
         model: Profile,
         as: "profile",
-        attributes: ["id", "firstname", "lastname"],
+        attributes: ["id", "firstname", "lastname", "client_id", "orgid" ],
       },
     ],
     order: [["createdat", "DESC"]],
@@ -70,9 +96,22 @@ exports.updateInteractionDate = async (id, createdat) => {
 /* ---------------- TASKS ---------------- */
 
 exports.createTask = async (data) => {
-  const task = await ProfileTask.create(data);
-  if (data.profileid) await touchLastInteraction(data.profileid);
-  return task;
+  // console.log(data);
+  const prof = await Profile.findOne({
+    where: {
+      orgid: data.orgid,
+      client_id: data.clientid
+    }
+  });
+
+  if (prof) {
+    data.profileid = prof.id;
+    const task = await ProfileTask.create(data);
+    if (data.profileid) await touchLastInteraction(data.profileid);
+    return task;
+  } else {
+    throw new Error(`No profile found for client_id ${data.clientid}`);
+  };
 };
 
 exports.listTasks = async (profileid) => {
@@ -82,16 +121,15 @@ exports.listTasks = async (profileid) => {
       {
         model: Profile,
         as: "profile",
-        attributes: ["id", "firstname", "lastname"],
+        attributes: ["id", "firstname", "lastname", "client_id", "orgid"],
       },
     ],
     order: [["createdat", "DESC"]],
   });
 };
 
-exports.searchTasks = async ({ from, to, profileid, staffid, status, notes }) => {
+exports.searchTasks = async ({ from, to, profileid, staffid, status, notes, client_id, orgid }) => {
   const where = { is_deleted: 0 };
-
   if (from && to) {
     where.createdat = {
       [Op.between]: [
@@ -101,7 +139,18 @@ exports.searchTasks = async ({ from, to, profileid, staffid, status, notes }) =>
     };
   }
 
-  if (profileid) where.profileid = profileid;
+  
+  if (profileid) {
+    const prof = await Profile.findOne({
+      where: { client_id: profileid, orgid: orgid }
+    });
+    if (prof) {
+      where.profileid = prof.id;
+    } else {
+      throw new Error(`No profile found for client_id ${profileid}`);
+    }
+  }
+
   if (staffid) where.createdby = staffid;
 
   if (status) {
@@ -117,7 +166,7 @@ exports.searchTasks = async ({ from, to, profileid, staffid, status, notes }) =>
       {
         model: Profile,
         as: "profile",
-        attributes: ["id", "firstname", "lastname"],
+        attributes: ["id", "firstname", "lastname", "client_id", "orgid"],
       },
     ],
     order: [["createdat", "DESC"]],

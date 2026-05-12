@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { createProfile, getProfile, updateProfile } from "../../logic/profiles.logic";
 import { getGothras } from "../../logic/gothras.logic";
 import { loadFormEnums } from "../../logic/enumStore";
+// import EducationSection from "../../components/education/EducationSection";
 
 // ─── Height helpers ───────────────────────────────────────────────────────────
 const FEET_OPTIONS   = [4, 5, 6, 7];
@@ -92,6 +93,7 @@ export default function ProfileForm() {
   const backTo      = location.state?.fromProfile || "/profiles";
 
   const [form, setForm] = useState({
+    client_id: "",
     firstname: "",
     middlei: "",
     lastname: "",
@@ -99,11 +101,8 @@ export default function ProfileForm() {
     birthdate: "",
     birthtime: "",
     birthplace: "",
-    familygod: "",
     color: "",
     weight: "",
-    birthdistrict: "",
-    birthstate: "",
     birthrasi: "",
     birthstar: "",
     starpada: "",
@@ -123,13 +122,18 @@ export default function ProfileForm() {
     sisym: null,
     hastwin: null,
     maritalsts: "",
-    education1: "",
-    education2: "",
-    almamater: "",
-    udeducation: "",
+    childrencount: "",
     networth: "",
     income: "",
     assetdets: "",
+    // education1: "",
+    // almamater: "",
+    // education2: "",
+    // almamater2: "",
+    // udeducation: "",
+    // birthdistrict: "",
+    // birthstate: "",
+    // familygod: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -138,6 +142,7 @@ export default function ProfileForm() {
   const [gothras, setGothras] = useState([]);
   const [selectedGothra, setSelectedGothra] = useState(null);
   const [selectedMamaGothra, setSelectedMamaGothra] = useState(null);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     loadFormEnums("profile").then(setEnums).catch(() => setEnums({}));
@@ -154,7 +159,7 @@ export default function ProfileForm() {
 
   const onChange = (e) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+   setForm(prev => ({ ...prev, [name]: value })); //to overcome stale state issue
 
     if (name === "gothra") {
       const g = gothras.find(x => x.id === Number(value));
@@ -164,15 +169,40 @@ export default function ProfileForm() {
       const g = gothras.find(x => x.id === Number(value));
       setSelectedMamaGothra(g);
     }
+
   };
 
   const submit = async (e) => {
     e.preventDefault();
+    setErrors({}); // reset errors
+
     try {
-      if (isEdit) { await updateProfile(id, form); navigate(`/profiles/${id}`); }
-      else        { const created = await createProfile(form); navigate(`/profiles/${created.id}`); }
-    } catch { alert("Failed to save profile"); }
+      if (isEdit) {
+        await updateProfile(id, form);
+        navigate(`/profiles/${id}`);
+      } else {
+        const created = await createProfile(form);
+        navigate(`/profiles/${created.id}`);
+      }
+    } catch (err) {
+        const field = err?.response?.data?.field;
+        const message = err?.response?.data?.message;
+
+        if (field) {
+          setErrors({ [field]: message });
+        } else {
+          alert("Failed to save profile");
+        }
+      }
   };
+
+  const maritalStatusName =
+  enums?.maritalsts?.options?.find(
+    o => String(o.enumvalue) === String(form.maritalsts)
+  )?.strvalue?.toLowerCase();
+
+  const showChildrenField =
+  maritalStatusName === "divorced" || maritalStatusName === "widow";
 
   if (loading || !enums) return <div className="ps-loading"><div className="ps-spinner" /></div>;
 
@@ -197,6 +227,8 @@ export default function ProfileForm() {
           </div>
           <div className="pf-grid">
             {[
+              { label: "Client ID",   name: "client_id",  placeholder: "Client ID", isClientId: true },
+              
               { label: "First Name",  name: "firstname",  placeholder: "First name"  },
               { label: "Middle Name", name: "middlei",    placeholder: "Middle name" },
               { label: "Last Name",   name: "lastname",   placeholder: "Last name"   },
@@ -205,7 +237,19 @@ export default function ProfileForm() {
               <div className="pf-field" key={f.name}>
                 <label className="pf-label">{f.label}</label>
                 <input className="pf-input" name={f.name} type={f.type || "text"}
-                  placeholder={f.placeholder} value={form[f.name] || ""} onChange={onChange} />
+                  placeholder={f.placeholder} value={form[f.name] || ""} onChange={onChange} 
+                  required={f.isClientId && !isEdit}  
+                  style={{
+                    border: errors[f.name] ? "1px solid red" : ""}}/>
+                  {f.isClientId && isEdit && form.client_id && (
+                    <div style={{ fontSize: "11px", color: "gray", marginTop: "4px" }}>
+                    </div>
+                  )}
+                  {errors[f.name] && (
+                    <div style={{ color: "red", fontSize: "12px", marginTop: "4px" }}>
+                      {errors[f.name]}
+                    </div>
+                  )}
               </div>
             ))}
 
@@ -224,13 +268,13 @@ export default function ProfileForm() {
             </div>
 
             {[
-              { label: "Birth Place",    name: "birthplace",  placeholder: "City / Town" },
-              { label: "Family God",     name: "familygod",   placeholder: "Family deity" },
+              { label: "Birth Place",    name: "birthplace",  placeholder: "City / Town",  },
               { label: "Weight",         name: "weight",      placeholder: "e.g. 65 kg" },
               { label: "Phone Number",   name: "phonenumber", placeholder: "Phone number", type: "tel" },
               { label: "Email",          name: "email",       placeholder: "Email address", type: "email" },
-              { label: "Birth State",    name: "birthstate",  placeholder: "State"          },
-              { label: "Birth District", name: "birthdist",   placeholder: "District"       },
+              // { label: "Family God",     name: "familygod",   placeholder: "Family deity" },
+              // { label: "Birth State",    name: "birthstate",  placeholder: "State"          },
+              // { label: "Birth District", name: "birthdist",   placeholder: "District"       },
             ].map(f => (
               <div className="pf-field" key={f.name}>
                 <label className="pf-label">{f.label}</label>
@@ -274,6 +318,21 @@ export default function ProfileForm() {
                 </select>
               </div>
             ))}
+
+            {showChildrenField && (
+            <div className="pf-field">
+              <label className="pf-label">Number of Children</label>
+              <input
+                type="number"
+                className="pf-input"
+                name="childrencount"
+                placeholder="Enter number of children"
+                value={form.childrencount || ""}
+                onChange={onChange}
+                min="0"
+              />
+            </div>
+          )}
 
             <div className="pf-field pf-field-full">
               <label className="pf-label">Swagothram</label>
@@ -324,7 +383,7 @@ export default function ProfileForm() {
         </div>
 
         {/* ══ EDUCATION ══ */}
-        <div className="pf-card">
+        {/* <div className="pf-card">
           <div className="pf-card-header">
             <h2 className="pf-card-title">Education Details</h2>
             <p className="pf-card-sub">Qualifications and institutions</p>
@@ -332,8 +391,9 @@ export default function ProfileForm() {
           <div className="pf-grid">
             {[
               { label: "Education 1",          name: "education1",  placeholder: "PUC / Bachelors"           },
-              { label: "Education 2",          name: "education2",  placeholder: "Masters / Specialisation"  },
               { label: "College / University", name: "almamater",   placeholder: "Institution name"          },
+              { label: "Education 2",          name: "education2",  placeholder: "Masters / Specialisation"  },
+              { label: "College / University", name: "almamater2",   placeholder: "Institution name"          },
               { label: "Other Education",      name: "udeducation", placeholder: "Any other details"         },
             ].map(f => (
               <div className="pf-field" key={f.name}>
@@ -342,7 +402,20 @@ export default function ProfileForm() {
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
+
+        {/* {isEdit && (
+          <div className="pf-card">
+            <div className="pf-card-header">
+              <h2 className="pf-card-title">Education</h2>
+              <p className="pf-card-sub">Add and manage education details</p>
+            </div>
+
+            <EducationSection profile_id={id} />
+          </div>
+        )} */}
+
+
 
         {/* ══ FAMILY ══ */}
         <div className="pf-card">

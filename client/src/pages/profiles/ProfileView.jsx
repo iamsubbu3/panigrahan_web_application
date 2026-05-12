@@ -14,6 +14,9 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { getFamily, addFamily, updateFamily, deleteFamily } from "../../logic/family.logic";
 import { loadFormEnums } from "../../logic/enumStore";
+import EducationSection from "../../components/education/EducationSection";
+import { getEducation } from "../../logic/education.logic";
+import { getOccupation } from "../../logic/occupation.logic";
 // import { getGothras } from "../../logic/gothras.logic";
 import { useAuth } from "../../auth/AuthContext";
 
@@ -151,6 +154,14 @@ function ExportLayout({ profile, enums, family, getGothraName }) {
     </div>
   );
 
+  const maritalStatusName =
+  enums?.maritalsts?.map?.[String(profile?.maritalsts)]?.toLowerCase();
+
+  const showChildren =
+  (maritalStatusName === "divorced" || maritalStatusName === "widow") &&
+  profile?.childrencount != null &&
+  profile?.childrencount !== "";
+
   const siblings = buildSiblingLines(profile);
 
   return (
@@ -160,7 +171,7 @@ function ExportLayout({ profile, enums, family, getGothraName }) {
           {profile.firstname} {profile.middlei} {profile.lastname}
         </div>
         <div style={{ fontSize: "12px", color: "#6b7280" }}>
-          Profile #{profile.id}{profile.familynames ? ` · ${profile.familynames}` : ""}
+         {profile.familynames ? ` · ${profile.familynames}` : ""} {profile.client_id ? ` · Client ID: ${profile.client_id}` : ""}
         </div>
       </div>
 
@@ -169,28 +180,32 @@ function ExportLayout({ profile, enums, family, getGothraName }) {
         <Row label="Gender"         value={profile.gender === 1 ? "Male" : "Female"} />
         <Row label="Birthtime"      value={profile.birthtime} />
         <Row label="Birthplace"     value={profile.birthplace} />
-        <Row label="Family God"     value={profile.familygod} />
+        {/* <Row label="Family God"     value={profile.familygod} /> */}
         <Row label="Height"         value={formatHeight(profile.height)} />
         <Row label="Weight"         value={profile.weight} />
         <Row label="Phone"          value={profile.phonenumber} />
         <Row label="Email"          value={profile.email} />
         <Row label="Color"          value={enums?.color?.map?.[profile.color]} />
-        <Row label="Birth District" value={profile.birthdist} />
-        <Row label="Birth State"    value={profile.birthstate} />
+        {/* <Row label="Birth District" value={profile.birthdist} />
+        <Row label="Birth State"    value={profile.birthstate} /> */}
         <Row label="Birth Star"     value={enums?.birthstar?.map?.[profile.birthstar]} />
         <Row label="Pada"           value={enums?.birthpada?.map?.[profile.starpada]} />
         <Row label="Birth Rashi"    value={enums?.birthrasi?.map?.[profile.birthrasi]} />
         <Row label="Swagothra"      value={getGothraName(profile?.swagothra)} />
         <Row label="Mama Gothra"    value={getGothraName(profile?.mamagothra)} />
         <Row label="Marital Status" value={enums?.maritalsts?.map?.[String(profile.maritalsts)]} />
+        {showChildren && (
+          <Row label="Children" value={profile.childrencount} />
+        )}
       </Section>
 
-      <Section title="Education">
+      {/* <Section title="Education">
         <Row label="Education 1"     value={profile.education1} />
-        <Row label="Education 2"     value={profile.education2} />
         <Row label="College / Univ." value={profile.almamater} />
+        <Row label="Education 2"     value={profile.education2} />
+        <Row label="College / Univ." value={profile.almamater2} />
         <Row label="Other"           value={profile.udeducation} />
-      </Section>
+      </Section> */}
 
       {(siblings.length > 0 || profile.hastwin || (family && family.length > 0)) && (
         <Section title="Family Details">
@@ -224,7 +239,7 @@ export default function ProfileView() {
   const [uploading, setUploading] = useState(false);
   
 // const [gothras, setGothras] = useState([]);
-useEffect(() => {
+    useEffect(() => {
     loadProfile();
     loadImages();
     
@@ -255,7 +270,46 @@ useEffect(() => {
   const [selectedPlan, setSelectedPlan] = useState("silver");
   const [planSaving,   setPlanSaving]   = useState(false);
 
-  const exportRef = useRef();
+  const handleExport = async (type) => {
+  const element = profileRef.current;
+
+    //REMOVE ALL OVERLAYS BEFORE CAPTURE
+    const overlays = document.querySelectorAll(".image-modal-overlay");
+    overlays.forEach(el => el.style.display = "none");
+
+    await new Promise((r) => setTimeout(r, 200));
+
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      ignoreElements: (el) => {
+        return el.classList?.contains("image-modal-overlay");
+      }
+    });
+
+    // restore overlays
+    overlays.forEach(el => el.style.display = "");
+
+    const imgData = canvas.toDataURL("image/jpeg", 1.0);
+
+    if (type === "pdf") {
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = (canvas.height * pageWidth) / canvas.width;
+
+      pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pageHeight);
+      pdf.save("profile.pdf");
+    } else {
+      const link = document.createElement("a");
+      link.href = imgData;
+      link.download = "profile.jpg";
+      link.click();
+    }
+  };
+
+  
 
   // Reset zoom whenever modal image changes
   useEffect(() => {
@@ -393,14 +447,18 @@ useEffect(() => {
     .catch(() => alert("Copy failed"));
 };
 
+const [educationData, setEducationData] = useState([]);
+const [addressData, setAddressData] = useState([]);
+const [occupationData, setOccupationData] = useState([]);
+
 const formatProfileForCopy = () => {
   if (!profile) return "";
 
-  const lines = [];
+  const lines = [];   
 
   // 🔹 Basic Info
   lines.push(`👤 *${profile.firstname} ${profile.lastname} ${profile.middlei || ""}*`);
-  lines.push(`ID: ${profile.id}`);
+  lines.push(`Client ID: ${profile.client_id || "-"}`);
   lines.push("");
 
   // 🔹 Profile Details
@@ -410,11 +468,11 @@ const formatProfileForCopy = () => {
   lines.push(`AGE: ${profile.age || "-"}`);
   lines.push(`Birth Time: ${profile.birthtime || "-"}`);
   lines.push(`Birth Place: ${profile.birthplace || "-"}`);
-  lines.push(`Family God: ${profile.familygod || "-"}`);
+  // lines.push(`Family God: ${profile.familygod || "-"}`);
   lines.push(`Height: ${formatHeight(profile.height)}`);
   lines.push(`Weight: ${profile.weight || "-"}`);
-  lines.push(`Birth District: ${profile.birthdist || "-"}`);
-  lines.push(`Birth State: ${profile.birthstate || "-"}`);
+  // lines.push(`Birth District: ${profile.birthdist || "-"}`);
+  // lines.push(`Birth State: ${profile.birthstate || "-"}`);
   lines.push("");
 
   // 🔹 Horoscope
@@ -424,13 +482,6 @@ const formatProfileForCopy = () => {
   lines.push(`Pada: ${enums?.birthpada?.map?.[profile.starpada] || "-"}`);
   lines.push(`Swagothra: ${profile?.swagothranm?.gothraname} `);
   lines.push(`mamagothra: ${profile?.mamagothranm?.gothraname} `);
-  lines.push("");
-
-  // 🔹 Education
-  lines.push("*🎓 Education*");
-  lines.push(`Education 1: ${profile.education1 || "-"}`);
-  lines.push(`Education 2: ${profile.education2 || "-"}`);
-  lines.push(`College: ${profile.almamater || "-"}`);
   lines.push("");
 
   // Asset and Income details
@@ -452,6 +503,43 @@ const formatProfileForCopy = () => {
 
   lines.push(`Has Twin: ${formatTwin(profile.hastwin) || "-"}`);
   lines.push("");
+
+  // Education details
+  if (educationData.length > 0) {
+    lines.push("*🎓 Education*");
+    educationData.forEach((edu, i) => {
+      lines.push(`${i + 1}. Qualification: ${edu.degree || "-"}`);
+      lines.push(`   College: ${edu.college || "-"}`);
+      lines.push(`   Field of study: ${edu.fieldstudy || "-"}`);
+      lines.push(`   Year: ${edu.year || "-"}`);
+    });
+    lines.push("");
+  }
+
+  if (occupationData.length > 0) {
+    lines.push("*💼 Occupation*");
+    occupationData.forEach((occ, i) => {
+      lines.push(`${i + 1}. ${occ.occname || "-"} (${occ.occrole || "-"})`);
+      if (occ.compname) lines.push(`   Company: ${occ.compname}`);
+      if (occ.income)   lines.push(`   Income: ${occ.income}`);
+      if (occ.occtype)   lines.push(`   Occupation Type: ${occ.occtype}`);
+    });
+    lines.push("");
+  }
+
+  if (addressData.length > 0) {
+    lines.push("* Address *");
+    addressData.forEach((addr, i) => {
+      lines.push(`${i + 1}. ${addr.addone || "-"}`);
+      lines.push(`   ${addr.addtwo || "-"}`);
+      lines.push(`   City: ${addr.city || "-"}`);
+      lines.push(`   District: ${addr.district || "-"}`);
+      lines.push(`   State: ${addr.state || "-"}`);
+      lines.push(`   Country: ${addr.country || "-"}`);
+      lines.push(`   Pincode: ${addr.pincode || "-"}`);
+    });
+    lines.push("");
+  }
 
   // 🔥 🔹 FAMILY MEMBERS + ADDRESSES
   if (family && family.length > 0) {
@@ -514,6 +602,15 @@ const formatProfileForCopy = () => {
     });
   }, [profile?.id, enums]);
 
+  const maritalStatusName =
+  enums?.maritalsts?.map?.[String(profile?.maritalsts)]?.toLowerCase();
+
+  const showChildren =
+  (maritalStatusName === "divorced" || maritalStatusName === "widow") &&
+  profile?.childrencount != null &&
+  profile?.childrencount !== "";
+
+
   useEffect(() => {
     const handler = (e) => {
       if (previewIndex === null) return;
@@ -527,7 +624,21 @@ const formatProfileForCopy = () => {
 
   useEffect(() => { loadFormEnums("profile").then(setEnums); }, []);
 
-  const loadProfile = async () => { const data = await getProfile(id); setProfile(data); };
+  const loadProfile = async () => { const data = await getProfile(id); setProfile(data); 
+    const rows = await getEducation(id);                        //education details
+    setEducationData(Array.isArray(rows) ? rows : []);
+
+    const addressrows = await getAddresses("profile", id);      //address details
+    // Extract only the ones that exist (not null/empty)
+      const addressList = ["current", "permanent", "work"]
+        .map(type => addressrows?.[type] ? { ...addressrows[type], type } : null)
+        .filter(Boolean);
+
+      setAddressData(addressList);
+
+      const occrows = await getOccupation("profile", id);
+      setOccupationData(Array.isArray(occrows) ? occrows : []);
+  };
   const loadImages  = async () => { const imgs = await getAttachments("profile", id); setImages(imgs); };
 
   const isProfilePicture = (attachmentId) => profile?.profilePictureId === attachmentId;
@@ -645,15 +756,8 @@ const formatProfileForCopy = () => {
   // Here profile updation img
   return (
     <>
-      {/* Hidden export layout */}
-      <div
-        ref={exportRef}
-        style={{ position: "absolute", left: "-9999px", top: "0px", visibility: "hidden", zIndex: -1, pointerEvents: "none" }}
-      >
-        {/* <ExportLayout profile={profile} enums={enums} family={family} getGothraName={getGothraName} /> */}
-      </div>
 
-      <div style={{ padding: "36px 40px", animation: "fadeIn .3s ease both" }}>
+      <div ref={profileRef} style={{ padding: "36px 40px"}}>
         <div style={{ display: "grid", gridTemplateColumns: "42% 1fr", gap: "28px", alignItems: "start" }}>
 
           {/* ═══════════════ LEFT — IMAGE GRID ═══════════════ */}
@@ -816,19 +920,19 @@ const formatProfileForCopy = () => {
               </button>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: "linear-gradient(90deg, var(--amber), var(--rose-light))" }} />
             <h1 style={{ fontFamily: "var(--font-display)", fontSize: "32px", fontWeight: 400, fontStyle: "italic", color: "var(--ink)", lineHeight: 1.1, marginBottom: "2px" }}>
-              <Link to={`/profiles/${profile.id}/edit`} style={{ textDecoration: "none", color: "inherit" }}>
+              <Link to={`/profiles/${profile.id}/edit`} style={{ textDecoration: "none", color: "inherit" }} target="_blank">
                 {profile.firstname} {profile.lastname} {profile.middlei}
               </Link>
             </h1>
             <div style={{ fontSize: "13px", color: "var(--ink-3)", marginBottom: "4px" }}>
-              #{profile.id} · {profile.familynames}
+              {profile.familynames} {profile.client_id && `(Client ID #: ${profile.client_id})`}
             </div>
             <div style={{ height: "2px", background: "linear-gradient(90deg, var(--amber), var(--rose-light), transparent)", borderRadius: "9999px", marginBottom: "18px" }} />
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
               {[
-                { to: `/profiles/${profile.id}/edit`, label: "✎ Edit Profile" },
-                { to: `/profiles/${profile.id}/preferences`, label: "⚙ Preferences", state: { fromProfile: location.pathname } },
-                { to: `/profiles/${profile.id}/match`, label: "⟳ Find Matches", state: { fromProfile: location.pathname } }
+                { to: `/profiles/${profile.id}/edit`, label: "✎ Edit Profile", state: { fromProfile: location.pathname }},
+                { to: `/profiles/${profile.id}/preferences`, label: "⚙ Preferences", state: { fromProfile: location.pathname }},
+                { to: `/profiles/${profile.id}/match`, label: "⟳ Find Matches", state: { fromProfile: location.pathname }},
               ].map(link => (
                 <Link key={link.to} to={link.to} state={link.state} style={{
                   padding: "7px 16px", borderRadius: "var(--r-sm)",
@@ -839,6 +943,7 @@ const formatProfileForCopy = () => {
                 }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--amber)"; e.currentTarget.style.color = "var(--amber)"; e.currentTarget.style.background = "var(--amber-dim)"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--ink-3)"; e.currentTarget.style.background = "var(--bg)"; }}
+                  target="_blank"
                 >
                   {link.label}
                 </Link>
@@ -858,28 +963,41 @@ const formatProfileForCopy = () => {
               <Attr label="Gender" value={profile.gender === 1 ? "Male" : "Female"} />
               <Attr label="Birthtime" value={profile.birthtime} />
               <Attr label="Birthplace" value={profile.birthplace} />
-              <Attr label="Family God" value={profile.familygod} />
+              {/* <Attr label="Family God" value={profile.familygod} /> */}
               <Attr label="Height" value={formatHeight(profile.height)} />
               <Attr label="Weight" value={profile.weight} />
               <Attr label="Phone" value={profile.phonenumber} />
               <Attr label="Email" value={profile.email} />
               <Attr label="Color" value={enums?.color?.map?.[profile.color]} />
-              <Attr label="Birth District" value={profile.birthdist} />
-              <Attr label="Birth State" value={profile.birthstate} />
+              {/* <Attr label="Birth District" value={profile.birthdist} />
+              <Attr label="Birth State" value={profile.birthstate} /> */}
               <Attr label="Birth Star" value={enums?.birthstar?.map?.[profile.birthstar]} />
               <Attr label="Pada" value={enums?.birthpada?.map?.[profile.starpada]} />
               <Attr label="Birth Rashi" value={enums?.birthrasi?.map?.[profile.birthrasi]} />
               <Attr label="Marital Status" value={enums?.maritalsts?.map?.[String(profile.maritalsts)]} />
+              {showChildren && (
+                <Attr label="Children" value={profile.childrencount} />
+              )}
               <Attr label="Swagothra" value={profile?.swagothranm?.gothraname} />
               <Attr label="Mamagothra" value={profile?.mamagothranm?.gothraname} />
             </div>
 
-            <SectionLabel>Education</SectionLabel>
+            {/* <SectionLabel>Education</SectionLabel>
             <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "14px" }}>
               <Attr label="Education 1" value={profile.education1} />
-              <Attr label="Education 2" value={profile.education2} />
               <Attr label="College / Univ." value={profile.almamater} />
+              <Attr label="Education 2" value={profile.education2} />
+              <Attr label="College / Univ." value={profile.almamater2} />
               <Attr label="Other" value={profile.udeducation} />
+            </div> */}
+
+            <div className="pf-card">
+              <div className="pf-card-header">
+                <h2 className="pf-card-title">Education</h2>
+                <p className="pf-card-sub">Add and manage education details</p>
+              </div>
+  
+              <EducationSection profile_id={id} />
             </div>
 
               {/* {console.log("familyid being passed:", family.find(m => m.relationtype === 1 || m.relationtype === 2)?.id)}
@@ -1044,19 +1162,21 @@ const formatProfileForCopy = () => {
                 )}
               </div>
             )}
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                onClick={() => handleExport("pdf")}
+                className="btn-secondary"
+              >
+                Export PDF
+              </button>
 
-            {/* Export */}
-            {/* <div style={{ display: "flex", gap: "10px" }}>
-              {[
-                { label: "Export PDF",   action: () => runExport("pdf"),   icon: "↓" },
-                { label: "Export Image", action: () => runExport("image"), icon: "⬡" },
-              ].map(btn => (
-                <button key={btn.label} onClick={btn.action} className="btn-secondary"
-                  style={{ padding: "10px 22px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                  <span>{btn.icon}</span> {btn.label}
-                </button>
-              ))}
-            </div> */}
+              <button
+                onClick={() => handleExport("jpeg")}
+                className="btn-secondary"
+              >
+                Export JPEG
+              </button>
+            </div>
           </div>
         </div>
 

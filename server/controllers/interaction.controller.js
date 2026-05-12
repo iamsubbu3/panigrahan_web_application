@@ -20,6 +20,7 @@ exports.create = async (req, res) => {
     const row = await service.createInteraction({
       ...req.body,
       userid: req.user.id,
+      orgid: req.user.orgid,
     });
     res.json(row);
   } catch (err) {
@@ -41,12 +42,14 @@ exports.list = async (req, res) => {
 exports.search = async (req, res) => {
   try {
     const { from, to, profileid, staffid, status } = req.query;
+    const orgid = req.user.orgid;
 
     const rows = await service.search({
       from:      toDateString(from),
       to:        toDateString(to),
       profileid,
       staffid,
+      orgid,
       status
     });
 
@@ -116,6 +119,7 @@ exports.createTask = async (req, res) => {
     const row = await service.createTask({
       ...req.body,
       createdby: req.user.id,
+      orgid: req.user.orgid,
     });
     res.json(row);
   } catch (err) {
@@ -137,6 +141,7 @@ exports.tasks = async (req, res) => {
 exports.searchTasks = async (req, res) => {
   try {
     const { from, to, profileid, staffid, status, notes } = req.query;
+    const orgid = req.user.orgid;
 
     const rows = await service.searchTasks({
       from:      toDateString(from),
@@ -144,7 +149,8 @@ exports.searchTasks = async (req, res) => {
       profileid,
       staffid,
       status,
-      notes
+      notes,
+      orgid
     });
 
     res.json(rows);

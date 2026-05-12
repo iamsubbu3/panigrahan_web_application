@@ -7,15 +7,19 @@ module.exports = (sequelize, DataTypes) => {
       },
 
       gothraname: {
-        type: DataTypes.STRING(30),
+        type: DataTypes.STRING(50),
       },
 
       gothrarushi: {
-        type: DataTypes.STRING(40),
+        type: DataTypes.STRING(50),
       },
 
       gothranum: {
         type: DataTypes.TINYINT.UNSIGNED,
+      },
+      aliases: {
+        type: DataTypes.JSON,
+        defaultValue: [],
       },
   },
   {

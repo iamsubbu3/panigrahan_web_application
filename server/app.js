@@ -12,6 +12,7 @@ const profileMatchRoutes = require("./routes/profileMatch.routes");
 const occupationRoutes  = require("./routes/occupation.routes");
 const interactionRoutes = require("./routes/interaction.routes");
 const gothraRoutes = require("./routes/gothras.routes");
+const educationRoutes = require("./routes/education.routes");
 
 
 const { requireAuth } = require("./middlewares/auth.middleware");
@@ -49,6 +50,8 @@ app.use("/api/attachments",  attachmentRoutes);
 app.use("/api/interactions", interactionRoutes);
 app.use("/api/occupation", occupationRoutes);
 app.use("/api/gothra", gothraRoutes);
+app.use("/api/education", educationRoutes);
+
 
 
 module.exports = app;

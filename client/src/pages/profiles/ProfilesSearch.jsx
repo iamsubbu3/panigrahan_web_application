@@ -5,6 +5,7 @@ import { searchProfiles, changests, searchProfilesAdmin, assignPlan, confirmPaym
 import { loadFormEnums } from "../../logic/enumStore";
 import { useAuth } from "../../auth/AuthContext";
 import { HeightPicker } from "./ProfileForm";
+import { getEducation } from "../../logic/education.logic";
 
 // ─── Height helpers ───────────────────────────────────────────────────────────
 const feetInchesToCm = (feet, inches) => {
@@ -114,7 +115,7 @@ function PlanHistoryModal({ profile, onClose }) {
 }
 
 // ─── Photo Modal with double-tap / double-click zoom ─────────────────────────
-function PhotoModal({ profiles, index, onClose, onNavigate, gothras }) {
+function PhotoModal({ profiles, index, onClose, onNavigate, gothras, enums, educationMap }) {
   const [zoomed, setZoomed]   = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const lastTap               = useRef(0);
@@ -163,6 +164,10 @@ function PhotoModal({ profiles, index, onClose, onNavigate, gothras }) {
                      || p.swagothranm?.gothraname
                      || null;
 
+  const birthstarName = enums?.birthstar?.options?.find(
+                          o => String(o.enumvalue) === String(p.birthstar)
+                        )?.strvalue || null;
+
   return (
     <div
       onClick={() => { if (zoomed) setZoomed(false); else onClose(); }}
@@ -192,7 +197,7 @@ function PhotoModal({ profiles, index, onClose, onNavigate, gothras }) {
       >
         <p style={{ margin: "0 0 4px", fontSize: "20px", fontWeight: 600, color: "#fff", lineHeight: 1.2 }}>
           {p.firstname} {p.lastname}
-          <span style={{ fontSize: "13px", fontWeight: 400, opacity: 0.6, marginLeft: "8px" }}>#{p.id}</span>
+          <span style={{ fontSize: "13px", fontWeight: 400, opacity: 0.6, marginLeft: "8px" }}>#{p.client_id}</span>
         </p>
         <p style={{ margin: "0 0 3px", fontSize: "13px", color: "rgba(255,255,255,0.75)" }}>
           {p.birthdate
@@ -200,8 +205,18 @@ function PhotoModal({ profiles, index, onClose, onNavigate, gothras }) {
             : ""}
           {p.height ? ` · ${formatHeight(p.height)}` : ""}
         </p>
+        <p style={{ margin: "0 0 3px", fontSize: "13px", color: "rgba(255,255,255,0.75)" }}>
+          {(educationMap?.[p.id]?.length > 0)
+            ? educationMap[p.id].map(e => e.degree).filter(Boolean).join(" · ")
+            : "—"}
+        </p>
         {gothraName && (
           <p style={{ margin: 0, fontSize: "12px", color: "rgba(255,255,255,0.42)" }}>{gothraName}</p>
+        )}
+        {birthstarName && (
+          <p style={{ margin: 0, fontSize: "12px", color: "rgba(255,255,255,0.42)" }}>
+            {birthstarName}
+          </p>
         )}
       </Link>
 
@@ -290,20 +305,21 @@ export default function ProfilesSearch() {
   const admin       = isAdmin();
 
   const [filters, setFilters] = useState({
-    id: "", name: "", birthdateFrom: "", birthdateTo: "", gender: "",
+    id: "", name: "", birthdateFrom: "", birthdateTo: "", gender: "",client_id : "",
     birthstar: [], status: 1,
     city: "", state: "", district: "",
     minHeight: "", maxHeight: "", phonenumber: "",
     color: "", sortBy: "firstname", sortDir: "asc",
-    occtype: [], swagothra: "", income: "", networth: "", birthyear: [],
+    occtype: [], otherProfession: "", swagothra: "", income: "", networth: "", birthyear: [],
   });
 
   const [profiles,       setProfiles]       = useState([]);
+  const [educationMap, setEducationMap] = useState({});
   const [enums,          setEnums]          = useState(null);
   const [gothras,        setGothras]        = useState([]);
   const [open,           setOpen]           = useState(false);
   const [openOcc,        setOpenOcc]        = useState(false);
-  const [openYear, setOpenYear] = useState(false);
+  const [openYear, setOpenYear]             = useState(false);
   const [historyProfile, setHistoryProfile] = useState(null);
   const [page,           setPage]           = useState(1);
   const [total,          setTotal]          = useState(0);
@@ -328,11 +344,27 @@ export default function ProfilesSearch() {
       setTotal(data?.total ?? list.length);
       setPages(data?.pages ?? 1);
       setPage(pg);
+
+      // ── Fetch education for all profiles in parallel ──
+      const eduEntries = await Promise.all(
+        list.map(async (p) => {
+          const rows = await getEducation(p.id);
+          return [p.id, Array.isArray(rows) ? rows : []];
+        })
+      );
+      setEducationMap(Object.fromEntries(eduEntries));
+
     } catch (err) {
       console.error("Error loading profiles:", err);
       setProfiles([]);
     }
   };
+
+  // useEffect(() => {
+  //   if (location.state?.refresh) {
+  //     load(page);
+  //   }
+  // }, [location.state]);
 
   useEffect(() => {
     getGothras().then(setGothras);
@@ -389,6 +421,7 @@ export default function ProfilesSearch() {
     }));
   };
 
+
   const toggleBirthYear = (year) => {
     setFilters(prev => ({
       ...prev,
@@ -413,6 +446,10 @@ export default function ProfilesSearch() {
   };
 
   if (!enums) return null;
+
+  const isProfessionalSelected = filters.occtype.some(id =>
+    enums.occtype.options.find(o => o.enumvalue === id)?.strvalue === "Professional"
+  );
 
   const subLabel = { bronze: "Bronze", silver: "Silver", gold: "Gold", diamond: "Diamond" };
 
@@ -465,7 +502,7 @@ export default function ProfilesSearch() {
             {/* Line 1: Name (#ID) */}
             <p style={{ margin: "0 0 3px", fontSize: "14px", fontWeight: 600, color: "#fff", lineHeight: 1.2 }}>
               {p.firstname} {p.lastname}
-              <span style={{ fontSize: "11px", fontWeight: 400, opacity: 0.7, marginLeft: "6px" }}>#{p.id}</span>
+              <span style={{ fontSize: "18px", fontWeight: 500, opacity: 0.7, marginLeft: "6px" }}>#{p.client_id}</span>
             </p>
             {/* Line 2: Birthdate (age) · Height */}
             <p style={{ margin: "0 0 2px", fontSize: "11px", color: "rgba(255,255,255,0.82)", lineHeight: 1.3 }}>
@@ -477,6 +514,12 @@ export default function ProfilesSearch() {
             {/* Line 3: Gothram */}
             <p style={{ margin: 0, fontSize: "10px", color: "rgba(255,255,255,0.55)" }}>
               {gothraName || "—"}
+            </p>
+             {/* Line 4: Education from education table */}
+            <p style={{ margin: "0 0 2px", fontSize: "11px", color: "rgba(255,255,255,0.82)", lineHeight: 1.3 }}>
+              {(educationMap[p.id]?.length > 0)
+                ? educationMap[p.id].map(e => e.degree).filter(Boolean).join(" · ")
+                : "—"}
             </p>
           </div>
         </div>
@@ -527,11 +570,17 @@ export default function ProfilesSearch() {
 
           {/* Action buttons */}
           <div style={{ display: "flex", gap: "5px", marginTop: "4px", paddingTop: "8px", borderTop: "1px solid var(--border)", flexWrap: "wrap" }}>
-            <Link to={`/profiles/${p.id}`} className="ps-action-btn" style={{ fontSize: "11px", padding: "4px 10px" }}>View</Link>
-            <Link to={`/profiles/${p.id}/edit`} className="ps-action-btn" style={{ fontSize: "11px", padding: "4px 10px" }}>Edit</Link>
+            <Link to={`/profiles/${p.id}`} className="ps-action-btn" target="_blank" style={{ fontSize: "11px", padding: "4px 10px" }}>View</Link>
+            <Link to={`/profiles/${p.id}/edit`} className="ps-action-btn" target="_blank" style={{ fontSize: "11px", padding: "4px 10px" }}>Edit</Link>
             {p.profilests === 1 ? (
               <button className="ps-action-btn" style={{ fontSize: "11px", padding: "4px 10px" }}
-                onClick={async () => { if (window.confirm("Inactivate this profile?")) { await changests(p.id, 2); load(page); } }}>
+                onClick={async () => {
+                  const reason = window.prompt("Enter reason for inactivating this profile:");
+                  if (reason !== null) {
+                    await changests(p.id, 2, reason);
+                    load(page);
+                  }
+                }}>
                 Inactivate
               </button>
             ) : (
@@ -573,6 +622,8 @@ export default function ProfilesSearch() {
           onClose={() => setPreviewIndex(null)}
           onNavigate={(idx) => { if (idx >= 0 && idx < profiles.length) setPreviewIndex(idx); }}
           gothras={gothras}
+          enums={enums}
+          educationMap={educationMap}
         />
       )}
 
@@ -637,8 +688,8 @@ export default function ProfilesSearch() {
         <div className="ps-filter-grid">
 
           <div className="ps-field">
-            <label className="ps-label">Profile ID</label>
-            <input className="ps-input" name="id" placeholder="e.g. 1042" value={filters.id} onChange={onChange} />
+            <label className="ps-label">ClientID</label>
+            <input className="ps-input" name="client_id" placeholder="e.g. 19123" value={filters.client_id} onChange={onChange} />
           </div>
 
           <div className="ps-field">
@@ -830,6 +881,32 @@ export default function ProfilesSearch() {
             </select>
           </div>
 
+          {/* <div className="ps-field">
+            <label className="ps-label">Education</label>
+            <input className="ps-input"  name="education"  placeholder="Enter education" value={filters.education} onChange={onChange}  />
+          </div> */}
+
+
+          <div className="ps-field">
+            <label className="ps-label">Swagothram</label>
+            <select name="swagothra" className="ps-input ps-select" value={filters.swagothra} onChange={onChange}>
+              <option value="">All Gothras</option>
+              {gothras.map(g => (
+                <option key={g.id} value={g.id}>{g.gothraname}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="ps-field">
+            <label className="ps-label">Min Income</label>
+            <input className="ps-input" name="income" placeholder="in lakhs" value={filters.income} onChange={onChange} />
+          </div>
+
+          <div className="ps-field">
+            <label className="ps-label">Min Networth</label>
+            <input className="ps-input" name="networth" placeholder="in crores" value={filters.networth} onChange={onChange} />
+          </div>
+
           {/* Occupation multi-select */}
           <div className="ps-field">
             <label className="ps-label">Occupation</label>
@@ -872,25 +949,19 @@ export default function ProfilesSearch() {
             </div>
           </div>
 
-          <div className="ps-field">
-            <label className="ps-label">Swagothram</label>
-            <select name="swagothra" className="ps-input ps-select" value={filters.swagothra} onChange={onChange}>
-              <option value="">All Gothras</option>
-              {gothras.map(g => (
-                <option key={g.id} value={g.id}>{g.gothraname}</option>
-              ))}
-            </select>
-          </div>
+          {filters.occtype.length > 0 && (
+            <div className="ps-field">
+              <label className="ps-label">Profession</label>
+              <input
+                className="ps-input"
+                name="otherProfession"
+                placeholder="Type profession (e.g. Doctor, Engineer)"
+                value={filters.otherProfession}
+                onChange={onChange}
+              />
+            </div>
+          )}
 
-          <div className="ps-field">
-            <label className="ps-label">Min Income</label>
-            <input className="ps-input" name="income" placeholder="in lakhs" value={filters.income} onChange={onChange} />
-          </div>
-
-          <div className="ps-field">
-            <label className="ps-label">Min Networth</label>
-            <input className="ps-input" name="networth" placeholder="in crores" value={filters.networth} onChange={onChange} />
-          </div>
 
           {admin && <>
             <div className="ps-field">
@@ -1039,7 +1110,7 @@ export default function ProfilesSearch() {
                           {p.firstname} {p.lastname}
                         </p>
                       </Link>
-                      <p className="ps-table-id">#{p.id}</p>
+                      <p className="ps-table-id">#{p.client_id}</p>
                     </td>
                     <td className="ps-td ps-td-meta">
                       {p.birthdate ? new Date(p.birthdate).toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—"}

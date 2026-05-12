@@ -5,8 +5,9 @@ const { Op } = Sequelize;
 /* ── Build filter WHERE from common filters ── */
 const buildWhere = (filters) => {
   const where = {};
-
-  if (filters.id)          where.id          = filters.id;
+   // orgid is mandatory for all queries
+  if (filters.orgid)              where.orgid              = filters.orgid;
+  if (filters.client_id)          where.client_id          = filters.client_id;
   if (filters.phonenumber) where.phonenumber  = filters.phonenumber;
   if (filters.name)        where[Op.or]       = [
     { firstname: { [Op.like]: `%${filters.name}%` } },
@@ -69,6 +70,7 @@ const buildWhere = (filters) => {
     where.swagothra = filters.swagothra;
   }
 
+  //occupation and suboccupation filters 
   if (filters.occtype?.length > 0) {
     where[Op.and] = where[Op.and] || [];
     where[Op.and].push(Sequelize.literal(`EXISTS (
@@ -79,6 +81,49 @@ const buildWhere = (filters) => {
     )`));
   }
 
+  if (filters.subocctype?.length > 0) {
+    where[Op.and] = where[Op.and] || [];
+
+    where[Op.and].push(Sequelize.literal(`
+      EXISTS (
+        SELECT 1 FROM occupation occ
+        WHERE occ.parentid = Profile.id
+          AND occ.parenttype = 'profile'
+          AND occ.subocctype IN (${filters.subocctype.map(v => parseInt(v)).join(",")})
+      )
+    `));
+  }
+
+ if (filters.otherProfession) {
+  where[Op.and] = where[Op.and] || [];
+
+  const synonyms = {
+    dr: "doctor",
+    doc: "doctor",
+    eng: "engineer"
+  };
+
+  let input = filters.otherProfession.toLowerCase().trim();
+  input = synonyms[input] || input;
+
+  const keywords = input.split(" ").filter(Boolean);
+
+  const conditions = keywords.map(word => {
+    const safeWord = word.replace(/'/g, "''");
+    return `LOWER(occ.occname) LIKE '%${safeWord}%'`;
+  }).join(" OR ");
+
+    where[Op.and].push(Sequelize.literal(`
+      EXISTS (
+        SELECT 1 FROM occupation occ
+        WHERE occ.parentid = Profile.id
+          AND occ.parenttype = 'profile'
+          AND (${conditions})
+      )
+    `));
+  }
+
+
   if (filters.birthyear && filters.birthyear.length > 0) {
     where[Op.and] = where[Op.and] || [];
 
@@ -86,11 +131,26 @@ const buildWhere = (filters) => {
       Sequelize.where(
         Sequelize.fn("YEAR", Sequelize.col("birthdate")),
         {
-          [Op.in]: filters.birthyear.map(Number)
+          [Op.in]: filters.birthyear.map(Number) //op.in is used incase of array of years, if it's a single year it will still work as it will be treated as an array with one element
         }
       )
     );
   }
+
+  // if (filters.education) {
+  //   where[Op.and] = where[Op.and] || [];
+
+  //   const values = filters.education.split(",").map(e => e.trim());
+
+  //   where[Op.and].push({
+  //     [Op.or]: values.map(edu => ({
+  //       [Op.or]: [
+  //         { education1: { [Op.like]: `%${edu}%` } },
+  //         { education2: { [Op.like]: `%${edu}%` } }
+  //       ]
+  //     }))
+  //   });
+  // }
 
   // status: "" or undefined = active only, 0 = all, 1 = active, 2 = inactive
   if (filters.status === 0 || filters.status === "0") {
@@ -125,7 +185,31 @@ const attachPlans = async (profiles) => {
   });
 };
 
-exports.create = (data, userId) => {
+exports.create = async (data, userId) => {
+
+  if (!data.client_id || data.client_id.trim() === "") {
+    return {
+      field: "client_id",
+      message: "Client ID is required"
+    };
+  }
+
+  //  FIRST find existing
+  const existing = await Profile.findOne({
+    where: {
+      orgid: data.orgid,
+      client_id: data.client_id
+    }
+  });
+
+  //  THEN check
+  if (existing) {
+    return {
+      field: "client_id",
+      message: "Client ID already exists"
+    };
+  }
+
   return Profile.create({
     ...data,
     createdby: userId,
@@ -178,7 +262,30 @@ exports.findById = async (id, role) => {
 exports.update = async (id, data, userId) => {
   const profile = await Profile.findByPk(id);
   if (!profile) return null;
-  return profile.update({ ...data, updatedby: userId, last_interaction: new Date() });
+
+  // ALWAYS check uniqueness if client_id is provided
+  if (data.client_id) {
+    const exists = await Profile.findOne({
+      where: {
+        orgid: profile.orgid,
+        client_id: data.client_id,
+        id: { [Op.ne]: id } 
+      }
+    });
+
+    if (exists) {
+      return {
+        field: "client_id",
+        message: "Client ID already exists"
+      };
+    }
+  }
+
+  return profile.update({
+    ...data,
+    updatedby: userId,
+    last_interaction: new Date()
+  });
 };
 
 exports.remove = async (id) => {

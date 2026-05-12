@@ -258,6 +258,22 @@ export default function AppLayout() {
   const profileMatch = location.pathname.match(/^\/profiles\/(\d+)/);
   const profileId    = profileMatch ? profileMatch[1] : null;
 
+  const [panelClientId, setPanelClientId] = useState(null);
+
+  useEffect(() => {
+    if (!profileId) { setPanelClientId(null); return; }
+
+    // profileId from the URL is the numeric DB id (e.g. 16).
+    // Fetch once to get the human-facing client_id (e.g. "19016") for display
+    // and to pass to TaskPane / InteractionPane. This is the only profile API
+    // call — the panes must NOT make their own fetch.
+    import("../api/apiClient").then(({ api }) => {
+      api(`/profiles/${profileId}`)
+        .then(profile => setPanelClientId(profile?.client_id ?? null))
+        .catch(() => setPanelClientId(null));
+    });
+  }, [profileId]);
+
   const isActive = (path) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
@@ -315,11 +331,11 @@ export default function AppLayout() {
           onClick={e => e.stopPropagation()}
         >
           <div className="right-panel-header">
-            <h3>Tasks{profileId && <span className="panel-profile-tag">Profile #{profileId}</span>}</h3>
+            <h3>Tasks{profileId && <span className="panel-profile-tag">{panelClientId ? `Client ID: ${panelClientId}` : `Profile #${profileId}`}</span>}</h3>
             <button onClick={() => setShowTasks(false)} aria-label="Close tasks panel">✕</button>
           </div>
           <div className="right-panel-content">
-            <TaskPane key={`tasks-${location.pathname}`} profileid={profileId} />
+            <TaskPane key={`tasks-${location.pathname}`} profileid={profileId} clientid={panelClientId} />
           </div>
           <div className="resize-handle-right" onMouseDown={e => { e.stopPropagation(); startResize("tasks", e); }} />
         </div>
@@ -333,11 +349,11 @@ export default function AppLayout() {
           onClick={e => e.stopPropagation()}
         >
           <div className="right-panel-header">
-            <h3>Interactions{profileId && <span className="panel-profile-tag">Profile #{profileId}</span>}</h3>
+            <h3>Interactions{profileId && <span className="panel-profile-tag">{panelClientId ? `Client ID: ${panelClientId}` : `Profile #${profileId}`}</span>}</h3>
             <button onClick={() => setShowInteractions(false)} aria-label="Close interactions panel">✕</button>
           </div>
           <div className="right-panel-content">
-            <InteractionPane key={`interactions-${location.pathname}`} profileid={profileId} />
+            <InteractionPane key={`interactions-${location.pathname}`} profileid={profileId} clientid={panelClientId} />
           </div>
           <div className="resize-handle-right" onMouseDown={e => { e.stopPropagation(); startResize("interactions", e); }} />
         </div>

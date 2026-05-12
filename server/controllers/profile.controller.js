@@ -5,8 +5,15 @@ const { Attachment } = require("../models");
 
 exports.create = async (req, res) => {
   try {
-    const profile = await profileService.create(req.body, req.user.id);
-    res.status(201).json(profile);
+    const result = await profileService.create(req.body, req.user.id);
+
+    //  handle validation response
+    if (result?.field) {
+      return res.status(400).json(result);
+    }
+
+    res.status(201).json(result);
+
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -35,9 +42,20 @@ exports.get = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-  const profile = await profileService.update(req.params.id, req.body, req.user.id);
-  if (!profile) return res.sendStatus(404);
-  res.json(profile);
+  const result = await profileService.update(
+    req.params.id,
+    req.body,
+    req.user.id
+  );
+
+  if (!result) return res.sendStatus(404);
+
+  //  handle validation error
+  if (result?.field) {
+    return res.status(400).json(result);
+  }
+
+  res.json(result);
 };
 
 exports.remove = async (req, res) => {
@@ -57,7 +75,7 @@ exports.activeCountByGender = async (req, res) => {
 };
 
 exports.search = async (req, res) => {
-  const filters     = req.body;
+  const filters     = { ...req.body, orgid: req.user.orgid };
   const includePlan = req.query.includeplan === "true";
   const page        = Math.max(1, parseInt(req.query.page)  || 1);
   const limit       = Math.min(50, parseInt(req.query.limit) || 10);

@@ -19,6 +19,7 @@ db.Profile = require("./profile")(sequelize, Sequelize);
 db.FamilyDetail = require("./familydetail.model")(sequelize, Sequelize);
 db.Address = require("./address.model")(sequelize, Sequelize.DataTypes);
 db.Occupation = require("./occupation.model")(sequelize, Sequelize.DataTypes);
+db.Education = require("./education.model")(sequelize, Sequelize.DataTypes);
 
 db.EnumType = require("./enumtype.model")(sequelize, Sequelize);
 db.FormEnumMap = require("./formEnumMap.model")(sequelize, Sequelize);
@@ -45,11 +46,14 @@ db.Profile.hasOne(db.gothras, { sourceKey: "swagothra", foreignKey: "id", as: "s
 db.Profile.hasOne(db.gothras, { sourceKey: "mamagothra", foreignKey: "id", as: "mamagothranm" });
 db.Profile.hasMany(db.ProfileStarPreference, { foreignKey: "profileid" });
 db.Profile.hasMany(db.Occupation, { foreignKey: "parentid", as: "occupations", scope: {parenttype: "profile"} });
+db.Profile.hasMany(db.Education, { foreignKey: "profile_id", as: "educations" });
 
 db.gothras.belongsTo(db.Profile, { as: "swagothranm", foreignKey: "swagothra"});
 db.gothras.belongsTo(db.Profile, { as: "mamagothranm", foreignKey: "mamagothra"});
 
 db.Occupation.belongsTo(db.Profile, { foreignKey: "parentid", as: "profile", scope: {parenttype: "profile"} });
+
+db.Education.belongsTo(db.Profile, { foreignKey: "profile_id", as: "profile" });
 
 db.FormEnumMap.belongsTo(db.EnumType, {
   foreignKey: "enumtype",

@@ -71,6 +71,7 @@ function CitySelect({ value, onChange, inputStyle }) {
 
 export default function ProfilePreference() {
   const { id }   = useParams();
+  const [profile, setProfile] = useState("");
   const navigate = useNavigate();
 
   const [pref, setPref] = useState({ agegap: "",  minincome: "", minnetworth: "" });
@@ -78,6 +79,7 @@ export default function ProfilePreference() {
   const [prefquestions, setPrefquestions] = useState([]);
   const [prefanswers,   setPrefanswers]   = useState([]);
   const [enums,         setEnums]         = useState(null);
+  // const [currentProfile, setCurrentProfile] = useState(null);
 
   useEffect(() => {
     loadFormEnums("profile").then(setEnums);
@@ -93,8 +95,25 @@ export default function ProfilePreference() {
         }));
       }
       if (res.stars) setStars(res.stars.map(s => s.birthstar));
+      if (res.profile) setProfile(res.profile);
     });
   }, [id]);
+
+  //  useEffect(() => {
+  //   if (!id) return;
+
+  //   const fetchClientId = async () => {
+  //     try {
+  //       const res = await api(`/profiles/${id}`);
+  //       setProfile(res);
+  //       setCurrentProfile(res);
+  //     } catch (err) {
+  //       console.error(err);
+  //     }
+  //   };
+
+  //   fetchClientId();
+  // }, [id]);
 
   const toggleStar = (value) =>
     setStars(prev => prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]);
@@ -161,12 +180,39 @@ export default function ProfilePreference() {
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
         <div>
-          <p className="ps-header-eyebrow">Profile #{id}</p>
+          <p className="ps-header-eyebrow">Client #{profile.client_id || id}</p>
           <h1 className="ps-header-title">Preferences</h1>
           <div className="ps-header-bar" />
         </div>
         <button type="button" className="btn-secondary" onClick={() => navigate(`/profiles/${id}`)}>Back</button>
       </div>
+
+      {profile && (
+        <div style={{
+          background: "var(--surface)", border: "1px solid var(--border)",
+          borderRadius: "var(--r-lg)", padding: "16px 20px",
+          display: "flex", alignItems: "center", gap: "16px",
+          boxShadow: "var(--shadow-xs)", animation: "fadeUp .4s var(--smooth) both"
+        }}>
+          <img
+            src={profile.profilePicture?.file_url ? `http://localhost:8080${profile.profilePicture.file_url}` : "/placeholder-profile.png"}
+            style={{ width: "60px", height: "60px", borderRadius: "var(--r-sm)", objectFit: "cover", border: "2px solid var(--amber-ring)" }}
+          />
+          <div>
+            <div style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: "18px", color: "var(--ink)" }}>
+              {profile.firstname} {profile.lastname}
+            </div>
+            <div style={{ fontSize: "12px", color: "var(--ink-3)" }}>Age: {profile.age}</div>
+          </div>
+          {/* <div style={{ marginLeft: "auto", display: "flex", gap: "10px" }}>
+            {filters.agegap && ( 
+              <span style={{ padding: "4px 12px", borderRadius: "9999px", background: "var(--bg-2)", border: "1px solid var(--border)", fontSize: "12px", color: "var(--ink-3)" }}>
+                Age Gap {filters.agegap} Yrs
+              </span>
+            )}
+          </div> */}
+        </div>
+      )}
 
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)", padding: "24px 28px", boxShadow: "var(--shadow-xs)" }}>
 

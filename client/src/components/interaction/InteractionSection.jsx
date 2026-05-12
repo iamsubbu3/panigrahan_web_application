@@ -21,13 +21,14 @@ const Tooltip = ({ text, children }) => (
 
 export default function InteractionSection({
   profileid,
+  clientid,
   hideList = false,
   onAdded
 }) {
   const [rows, setRows] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [enums, setEnums] = useState(null);
-  const [profileId, setProfileId] = useState(profileid || "");
+  const [clientId, setClientId] = useState(clientid || "");
   const [profileError, setProfileError] = useState("");
 
   const { getCurrentStaffId } = useAuth();
@@ -40,13 +41,13 @@ export default function InteractionSection({
   });
 
   useEffect(() => {
-    if (profileid) setProfileId(profileid);
-  }, [profileid]);
+    if (clientId) setClientId(clientId);
+  }, [clientId]);
 
   const load = async () => {
-    if (!profileId) return;
-    const r = await getInteractions(profileId);
-    const t = await getTasks(profileId);
+    if (!clientId) return;
+    const r = await getInteractions(clientId);
+    const t = await getTasks(clientId);
     setRows(r || []);
     setTasks(t || []);
   };
@@ -62,28 +63,28 @@ export default function InteractionSection({
 
   useEffect(() => {
     if (!hideList) load();
-  }, [profileId, hideList]);
+  }, [clientId, hideList]);
 
   const save = async () => {
     setProfileError("");
-    if (!profileId || !form.interactiontype || !form.notes) return;
+    // if (!profileId || !form.interactiontype || !form.notes) return;
 
-    let profileExists = false;
+    // let profileExists = false;
 
-    try {
-      const check = await api(`/profiles/${profileId}`);
-      if (check && check.id) profileExists = true;
-    } catch {
-      profileExists = false;
-    }
+    // try {
+    //   const check = await api(`/profiles/${profileId}`);
+    //   if (check && check.id) profileExists = true;
+    // } catch {
+    //   profileExists = false;
+    // }
 
-    if (!profileExists) {
-      setProfileError("Profile ID doesn't exist");
-      return;
-    }
+    // if (!profileExists) {
+    //   setProfileError("Profile ID doesn't exist");
+    //   return;
+    // }
 
     const newInteraction = await addInteraction({
-      profileid: profileId,
+      clientid: clientId,
       interactiontype: form.interactiontype,
       notes: form.notes,
       userid: currentStaffId
@@ -91,7 +92,7 @@ export default function InteractionSection({
 
     if (form.task && newInteraction?.id) {
       await addTask({
-        profileid: profileId,
+        clientid: clientId,
         description: form.task,
         createdby: currentStaffId,
         interactionid: newInteraction.id
@@ -107,17 +108,17 @@ export default function InteractionSection({
 
   return (
     <div className="bg-white border rounded-xl p-4 space-y-4">
-      <h1 class="font-medium text-lg">Add Task</h1>
+      <h1 className="font-medium text-lg">Add Interaction</h1>
 
       {!profileid && (
         <div>
-          <Tooltip text="Enter the Profile ID this interaction is linked to">
+          <Tooltip text="Enter the Client ID this interaction is linked to">
             <input
               className="input w-full"
-              placeholder="Profile ID"
-              value={profileId}
+              placeholder="Client ID"
+              value={clientId}
               onChange={e => {
-                setProfileId(e.target.value);
+                setClientId(e.target.value);
                 setProfileError("");
               }}
             />
@@ -176,7 +177,7 @@ export default function InteractionSection({
         </button>
       </div>
 
-      {profileid && profileError && (
+      {clientId && profileError && (
         <p className="text-red-500 text-xs">{profileError}</p>
       )}
 

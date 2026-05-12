@@ -19,7 +19,7 @@ exports.get = async (req, res) => {
   const prefquestions = await questionsService.listByGender(gender);
   const prefanswers  = await answerService.getanswers(req.params.id);
 
-  res.json({ pref, stars, prefquestions, prefanswers });
+  res.json({ profile, pref, stars, prefquestions, prefanswers });
 };
 
 /* ======================================================

@@ -79,27 +79,29 @@ function AddTaskSection({ profileid, onAdded }) {
 
   const validateAndSave = async () => {
     setProfileError("");
-    if (!profileId) { setProfileError("Profile ID is required."); return; }
+    if (!profileId) { setProfileError("Client ID is required."); return; }
     if (!form.description.trim()) return;
 
-    try {
-      const check = await api(`/profiles/${profileId}`);
-      if (!check?.id) { setProfileError("Profile ID doesn't exist."); return; }
-    } catch {
-      setProfileError("Profile ID doesn't exist.");
-      return;
-    }
+    // try {
+    //   const check = await api(`/profiles/by-client-id/${profileId}`);
+    //   if (!check?.id) { setProfileError("Client ID doesn't exist."); return; }
+    // } catch {
+    //   setProfileError("Client ID doesn't exist.");
+    //   return;
+    // }
 
     setSaving(true);
     try {
       await addTask({
-        profileid:   profileId,
+        clientid:    profileId,
         description: form.description.trim(),
         createdby:   currentStaffId,
         ...(form.duedate ? { duedate: form.duedate } : {})
       });
       setForm({ description: "", duedate: "" });
       if (onAdded) onAdded();
+    } catch (err) {
+      setProfileError(err?.message || "Client ID doesn't exist.");
     } finally {
       setSaving(false);
     }
@@ -111,10 +113,10 @@ function AddTaskSection({ profileid, onAdded }) {
 
       {!profileid && (
         <div>
-          <Tooltip text="Enter the Profile ID this task is linked to">
+          <Tooltip text="Enter the Client ID this task is linked to">
             <input
               className={`input w-full ${profileError ? "border-red-400" : ""}`}
-              placeholder="Profile ID"
+              placeholder="Client ID"
               value={profileId}
               onChange={e => { setProfileId(e.target.value); setProfileError(""); }}
             />
@@ -166,19 +168,20 @@ function AddTaskSection({ profileid, onAdded }) {
 /* ─────────────────────────────────────────────────────────────
    MAIN TASK PANE
 ───────────────────────────────────────────────────────────── */
-export default function TaskPane({ profileid: profileidProp }) {
+export default function TaskPane({ profileid: profileidProp, clientid: clientidProp }) {
   const { id: profileIdFromRoute } = useParams();
   const [searchParams] = useSearchParams();
   const focusedTaskId = searchParams.get("taskId");
 
   const profileid = profileidProp || profileIdFromRoute;
+  const [clientId, setClientId] = useState(clientidProp || "");
 
   const [filters,        setFilters]        = useState(() => ({ ...getLast7DaysRange(), notes: "" }));
   const [status,         setStatus]         = useState([]);
   const [rows,           setRows]           = useState([]);
   const [dirtyDueDates,  setDirtyDueDates]  = useState({});
   const [deleteConfirm,  setDeleteConfirm]  = useState(null);
-  const [profileIdError, setProfileIdError] = useState("");
+  const [searchError,   setSearchError]   = useState("");
 
   const { getCurrentStaffId } = useAuth();
   const currentStaffId = getCurrentStaffId();
@@ -186,23 +189,25 @@ export default function TaskPane({ profileid: profileidProp }) {
   const toggleStatusFilter = (s) =>
     setStatus(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
 
-  const validateProfileId = async (pid) => {
-    if (!pid) return true;
-    try {
-      const profile = await api(`/profiles/${pid}`);
-      if (!profile || !profile.id) {
-        setProfileIdError(`Profile ID ${pid} does not exist.`);
-        return false;
-      }
-      setProfileIdError("");
-      return true;
-    } catch {
-      setProfileIdError(`Profile ID ${pid} does not exist.`);
-      return false;
-    }
-  };
+  // const validateProfileId = async (pid) => {
+  //   if (!pid) return true;
+  //   try {
+      
+  //     const profile = await api(`/profiles/by-client-id/${pid}`);
+  //     if (!profile || !profile.id) {
+  //       setProfileIdError(`Client ID ${pid} does not exist.`);
+  //       return false;
+  //     }
+  //     setProfileIdError("");
+  //     return true;
+  //   } catch {
+  //     setProfileIdError(`Client ID ${pid} does not exist.`);
+  //     return false;
+  //   }
+  // };
 
   const runSearch = async (override = {}) => {
+    setSearchError("");
     const merged = {
       ...filters,
       ...override,
@@ -215,24 +220,40 @@ export default function TaskPane({ profileid: profileidProp }) {
       Object.entries(merged).filter(([, v]) => v !== "" && v !== null && v !== undefined)
     );
 
-    const r = await searchTasks(clean);
-    setRows(r || []);
-    setDirtyDueDates({});
+    try {
+      const r = await searchTasks(clean);
+      setRows(r || []);
+      setDirtyDueDates({});
+    } catch (err) {
+      //  Backend throws if client_id not found I
+      setSearchError(err?.message || "No profile found for that Client ID.");
+      setRows([]);
+    }
   };
 
-  const handleSearch = async () => {
-    const pid = filters.profileid;
-    const valid = await validateProfileId(pid);
-    if (!valid) return;
-    runSearch();
-  };
+  const handleSearch = async () => runSearch();
 
   useEffect(() => {
-    const base = getLast7DaysRange();
-    const merged = { ...base, notes: "", ...(profileid ? { profileid } : {}) };
+  const base = getLast7DaysRange();
+
+  if (!profileid) {
+    // Global view — not on a profile page
+    setClientId("");
+    const merged = { ...base, notes: "" };
     setFilters(merged);
     runSearch({ ...merged, ...(focusedTaskId ? { id: focusedTaskId } : {}) });
-  }, [profileid, status, focusedTaskId]);
+    return;
+  }
+
+  // On a profile page — clientidProp is the URL client_id, available synchronously from AppLayout.
+  // No fallback fetch needed here.
+  if (!clientidProp) return;
+
+  setClientId(clientidProp);
+  const merged = { ...base, notes: "", profileid: clientidProp };
+  setFilters(merged);
+  runSearch({ ...merged, ...(focusedTaskId ? { id: focusedTaskId } : {}) });
+}, [profileid, clientidProp, status, focusedTaskId]);
 
   const saveTaskUpdate = async (taskId) => {
     const newDate = dirtyDueDates[taskId];
@@ -271,7 +292,9 @@ export default function TaskPane({ profileid: profileidProp }) {
         />
       )}
 
-      <AddTaskSection profileid={profileid} onAdded={() => runSearch()} />
+      {(clientId || !profileidProp) && (
+        <AddTaskSection profileid={clientId} onAdded={() => runSearch()} />
+      )}
 
       {!focusedTaskId && (
         <div className="bg-white border rounded-xl p-4 space-y-3">
@@ -302,18 +325,18 @@ export default function TaskPane({ profileid: profileidProp }) {
 
             {!profileid && (
               <div className="col-span-2">
-                <Tooltip text="Filter tasks by Profile ID">
+                <Tooltip text="Filter tasks by Client ID">
                   <div className="w-full space-y-1">
                     <input
-                      className={`w-full ${profileIdError ? "border-red-400 focus:ring-red-300" : ""}`}
-                      placeholder="Profile ID"
+                      className={`w-full ${searchError ? "border-red-400 focus:ring-red-300" : ""}`}
+                      placeholder="Client ID"
                       onChange={e => {
-                        setProfileIdError("");
+                        setSearchError(""); // ✅ was setProfileIdError
                         setFilters({ ...filters, profileid: e.target.value });
                       }}
                     />
-                    {profileIdError && (
-                      <div className="text-xs text-red-500 font-medium px-1">⚠ {profileIdError}</div>
+                    {searchError && (
+                      <div className="text-xs text-red-500 font-medium px-1">⚠ {searchError}</div>
                     )}
                   </div>
                 </Tooltip>
@@ -350,7 +373,7 @@ export default function TaskPane({ profileid: profileidProp }) {
                 className="text-blue-600 cursor-pointer font-medium"
                 onClick={() => window.open(`/profiles/${t.profileid}`, "_blank")}
               >
-                {t.profile?.firstname} {t.profile?.lastname} ({t.profileid})
+                {t.profile?.firstname} {t.profile?.lastname} ({t.profile?.client_id})
               </div>
 
               <div>{t.description}</div>

@@ -72,31 +72,32 @@ const ConfirmDeleteDialog = ({ onConfirm, onCancel }) => (
   </div>
 );
 
-export default function InteractionPane({ profileid }) {
+export default function InteractionPane({ profileid, clientid: clientidProp }) {
   const [filters, setFilters] = useState(() => getLast7DaysRange());
   const [rows, setRows] = useState([]);
   const [dirtyDates, setDirtyDates] = useState({});
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [profileIdError, setProfileIdError] = useState("");
+  const [clientId, setClientId] = useState(clientidProp || "");
 
   const { getCurrentStaffId } = useAuth();
   const currentStaffId = getCurrentStaffId();
 
-  const validateProfileId = async (pid) => {
-    if (!pid) return true;
-    try {
-      const profile = await api(`/profiles/${pid}`);
-      if (!profile || !profile.id) {
-        setProfileIdError(`Profile ID ${pid} does not exist.`);
-        return false;
-      }
-      setProfileIdError("");
-      return true;
-    } catch {
-      setProfileIdError(`Profile ID ${pid} does not exist.`);
-      return false;
-    }
-  };
+  // const validateProfileId = async (pid) => {
+  //   if (!pid) return true;
+  //   try {
+  //     const profile = await api(`/profiles/${pid}`);
+  //     if (!profile || !profile.id) {
+  //       setProfileIdError(`Profile ID ${pid} does not exist.`);
+  //       return false;
+  //     }
+  //     setProfileIdError("");
+  //     return true;
+  //   } catch {
+  //     setProfileIdError(`Profile ID ${pid} does not exist.`);
+  //     return false;
+  //   }
+  // };
 
   const runSearch = async (params) => {
     const r = await searchInteractions(params);
@@ -106,15 +107,29 @@ export default function InteractionPane({ profileid }) {
 
   useEffect(() => {
     const base = getLast7DaysRange();
-    const merged = { ...base, ...(profileid ? { profileid } : {}) };
+
+    // On a profile page — clientidProp is the URL client_id, synchronously available from AppLayout.
+    // No fallback fetch or async wait needed here.
+    if (profileid && !clientidProp) return;
+
+    if (clientidProp) {
+      setClientId(clientidProp);
+      const merged = { ...base, profileid: clientidProp };
+      setFilters(merged);
+      runSearch(merged);
+      return;
+    }
+
+   // Global view — not on a profile page
+    const merged = { ...base };
     setFilters(merged);
     runSearch(merged);
-  }, [profileid]);
+  }, [profileid, clientidProp]);
 
   const handleSearch = async () => {
     const pid = filters.profileid;
-    const valid = await validateProfileId(pid);
-    if (!valid) return;
+    // const valid = await validateProfileId(pid);
+    // if (!valid) return;
     runSearch(filters);
   };
 
@@ -167,6 +182,7 @@ export default function InteractionPane({ profileid }) {
 
       <InteractionSection
         profileid={profileid}
+        clientid={clientId}
         hideList
         onAdded={() => runSearch(filters)}
       />
@@ -185,24 +201,26 @@ export default function InteractionPane({ profileid }) {
           title="To Date"
         />
 
-        <Tooltip text="Filter interactions by Profile ID">
-          <div className="w-full space-y-1">
-            <input
-              className={`w-full ${profileIdError ? "border-red-400 focus:ring-red-300" : ""}`}
-              placeholder="Profile ID"
-              defaultValue={profileid || ""}
-              onChange={e => {
-                setProfileIdError("");
-                setFilters({ ...filters, profileid: e.target.value });
-              }}
-            />
-            {profileIdError && (
-              <div className="text-xs text-red-500 font-medium px-1">
-                ⚠ {profileIdError}
-              </div>
-            )}
-          </div>
-        </Tooltip>
+        {!clientId && (
+          <Tooltip text="Filter interactions by Client ID">
+            <div className="w-full space-y-1">
+              <input
+                className={`w-full ${profileIdError ? "border-red-400 focus:ring-red-300" : ""}`}
+                placeholder="Client ID"
+                defaultValue={clientId || ""}
+                onChange={e => {
+                  setProfileIdError("");
+                  setFilters({ ...filters, profileid: e.target.value });
+                }}
+              />
+              {profileIdError && (
+                <div className="text-xs text-red-500 font-medium px-1">
+                  ⚠ {profileIdError}
+                </div>
+              )}
+            </div>
+          </Tooltip>
+        )}
 
         <Tooltip text="Filter interactions by Staff ID">
           <input
@@ -234,7 +252,7 @@ export default function InteractionPane({ profileid }) {
                 className="font-medium text-blue-600 cursor-pointer"
                 onClick={() => window.open(`/profiles/${r.profileid}`, "_blank")}
               >
-                {r.profile?.firstname} {r.profile?.lastname} ({r.profileid})
+                {r.profile?.firstname} {r.profile?.lastname} ({r.profile?.client_id})
               </div>
 
               <div>{r.notes}</div>

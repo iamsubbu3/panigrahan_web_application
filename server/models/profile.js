@@ -8,6 +8,14 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true
       },
 
+      client_id: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+        validate: {
+                    notEmpty: true // prevents ""
+                  }
+      },
+
       firstname: DataTypes.STRING(100),
       lastname: DataTypes.STRING(100),
       middlei: DataTypes.STRING(50),
@@ -33,6 +41,11 @@ module.exports = (sequelize, DataTypes) => {
       height: DataTypes.DECIMAL(5, 2),
       // height_feet: DataTypes.TINYINT.UNSIGNED,
       // height_inches: DataTypes.TINYINT.UNSIGNED,
+      // almamater: DataTypes.STRING(100),
+      // education2: DataTypes.STRING(30),
+      // almamater2: DataTypes.STRING(100),
+      // education1: DataTypes.STRING(30),
+      // udeducation: DataTypes.STRING(30),
       weight: DataTypes.DECIMAL(5, 2),
       color: DataTypes.TINYINT.UNSIGNED,
 
@@ -52,6 +65,7 @@ module.exports = (sequelize, DataTypes) => {
       profilests: DataTypes.TINYINT.UNSIGNED,
       billingsts: DataTypes.TINYINT.UNSIGNED,
       maritalsts: DataTypes.TINYINT.UNSIGNED,
+      childrencount: DataTypes.TINYINT.UNSIGNED,
       phonenumber: DataTypes.STRING(20),
 
       income: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
@@ -61,12 +75,8 @@ module.exports = (sequelize, DataTypes) => {
       updatedby: DataTypes.INTEGER,
       profilePictureId: DataTypes.INTEGER,
 
-      education1: DataTypes.STRING(30),
-      education2: DataTypes.STRING(30),
-      almamater: DataTypes.STRING(100),
-      udeducation: DataTypes.STRING(30),
-      swagothra: DataTypes.TINYINT.UNSIGNED,
-      mamagothra: DataTypes.TINYINT.UNSIGNED,
+      swagothra: DataTypes.SMALLINT.UNSIGNED,
+      mamagothra: DataTypes.SMALLINT.UNSIGNED,
       familygod: DataTypes.STRING(30),
       email: DataTypes.STRING(30),
 
@@ -74,7 +84,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
       },
-
+      
       last_interaction: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
@@ -82,12 +92,25 @@ module.exports = (sequelize, DataTypes) => {
       secret_notes: {
         type: DataTypes.JSON,
         defaultValue: []
-      }
+      },
+      
+      orgid: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+      },
+      
+      inacreason: {
+        type: DataTypes.TEXT,
+      },
     },
     {
       tableName: "profiles",
       timestamps: false,
       indexes: [
+        {
+          unique: true,
+          fields: ['orgid', 'client_id']
+        },
         { fields: ["birthdate"] },
         { fields: ["gender"] },
         { fields: ["income"] },
