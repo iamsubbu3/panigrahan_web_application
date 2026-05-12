@@ -58,7 +58,7 @@ sg_name         = "panigrahan-sg"
 # 4. EC2 INSTANCES (Jenkins)
 ################################################################################
 # Instance 1
-public_instance_ami_1              = "ami-091138d0f0d41ff90"
+public_instance_ami_1              = "ami-05cf1e9f73fbad2e2"
 public_instance_type_1             = "t2.medium"
 public_instance_key_pair_1         = "panigrahan-iamsubbu-keypair"
 public_instance_associate_ip_add_1 = true
