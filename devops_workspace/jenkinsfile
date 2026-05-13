@@ -26,7 +26,7 @@ pipeline {
 
         SONAR_PROJECT_KEY = "panigrahan-web-app"
 
-        SONAR_HOST_URL    = "http://<SONARQUBE-IP>:9000"
+        SONAR_HOST_URL    = "http://sonarqube.company.com"
     }
 
     triggers {
