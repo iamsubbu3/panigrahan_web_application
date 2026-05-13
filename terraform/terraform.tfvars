@@ -54,12 +54,9 @@ private_rt_name      = "panigrahan-private-rt"
 sg_name         = "panigrahan-sg"
 # my_ip           = ["49.206.131.43/32", "157.50.80.166/32", "223.185.128.1/32"]
 
-################################################################################
-# 4. EC2 INSTANCES (Jenkins)
-################################################################################
 # Instance 1
 public_instance_ami_1              = "ami-05cf1e9f73fbad2e2"
-public_instance_type_1             = "t2.medium"
+public_instance_type_1             = "t3.large"
 public_instance_key_pair_1         = "panigrahan-iamsubbu-keypair"
 public_instance_associate_ip_add_1 = true
 public_instance_volume_size_1      = 20

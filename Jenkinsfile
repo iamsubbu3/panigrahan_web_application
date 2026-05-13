@@ -24,7 +24,7 @@ pipeline {
         /* ===================================================== */
 
         SCANNER_HOME      = tool 'sonar-scanner'
-        SONAR_PROJECT_KEY = "panigrahan-app"
+        SONAR_PROJECT_KEY = "panigrahan-web-app"
         SONAR_HOST_URL    = "http://sonarqube.company.com"
 
         /* ===================================================== */
@@ -106,9 +106,13 @@ pipeline {
 
                     sh """
                         ${SCANNER_HOME}/bin/sonar-scanner \
-                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                          -Dsonar.projectName=${SONAR_PROJECT_KEY} \
-                          -Dsonar.sources=.
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                        -Dsonar.projectName=${SONAR_PROJECT_KEY} \
+                        -Dsonar.host.url=${SONAR_HOST_URL} \
+                        -Dsonar.sources=client/src,server \
+                        -Dsonar.sourceEncoding=UTF-8 \
+                        -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/** \
+                        -Dsonar.verbose=true
                     """
                 }
             }
