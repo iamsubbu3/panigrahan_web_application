@@ -83,18 +83,14 @@ spec:
             cpu: "500m"
 
         readinessProbe:
-          httpGet:
-            path: /
+          tcpSocket:
             port: 8080
-
           initialDelaySeconds: 20
           periodSeconds: 10
 
         livenessProbe:
-          httpGet:
-            path: /
+          tcpSocket:
             port: 8080
-
           initialDelaySeconds: 40
           periodSeconds: 15
 
