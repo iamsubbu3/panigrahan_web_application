@@ -5,6 +5,7 @@ pipeline {
     tools {
 
         jdk 'jdk21'
+        nodejs 'node20'
     }
 
     options {
