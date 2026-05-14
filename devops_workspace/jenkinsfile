@@ -1,0 +1,182 @@
+pipeline {
+
+    agent any
+
+    tools {
+
+        jdk 'jdk21'
+    }
+
+    options {
+
+        timestamps()
+
+        disableConcurrentBuilds()
+
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    environment {
+
+        /* ===================================================== */
+        /* SONARQUBE SETTINGS                                    */
+        /* ===================================================== */
+
+        SCANNER_HOME      = tool 'sonar-scanner'
+
+        SONAR_PROJECT_KEY = "panigrahan-web-app"
+
+        SONAR_HOST_URL    = "http://sonarqube.company.com"
+    }
+
+    triggers {
+
+        githubPush()
+    }
+
+    stages {
+
+        /* ===================================================== */
+        /* STAGE 1 — CHECKOUT SOURCE CODE                        */
+        /* ===================================================== */
+
+        stage('Checkout') {
+
+            steps {
+
+                cleanWs()
+
+                git branch: 'main',
+                    credentialsId: 'github-private-repo',
+                    url: 'https://github.com/iamsubbu3/panigrahan_web_application.git'
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 2 — VERIFY WORKSPACE                            */
+        /* ===================================================== */
+
+        stage('Verify Workspace') {
+
+            steps {
+
+                sh '''
+                    echo "================ WORKSPACE ================="
+
+                    pwd
+
+                    echo "============================================"
+
+                    ls -la
+
+                    echo "============================================"
+
+                    echo "CLIENT FILES"
+
+                    find client -type f | head -50 || true
+
+                    echo "============================================"
+
+                    echo "SERVER FILES"
+
+                    find server -type f | head -50 || true
+                '''
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 4 — INSTALL FRONTEND DEPENDENCIES               */
+        /* ===================================================== */
+
+        stage('Install Frontend Dependencies') {
+
+            steps {
+
+                dir('client') {
+
+                    sh '''
+                        npm install
+                    '''
+                }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 5 — INSTALL BACKEND DEPENDENCIES                */
+        /* ===================================================== */
+
+        stage('Install Backend Dependencies') {
+
+            steps {
+
+                dir('server') {
+
+                    sh '''
+                        npm install
+                    '''
+                }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 6 — SONARQUBE STATIC ANALYSIS                   */
+        /* ===================================================== */
+
+        stage('SonarQube Scan') {
+
+            steps {
+
+                withSonarQubeEnv('sonar') {
+
+                    sh """
+                        ${SCANNER_HOME}/bin/sonar-scanner \
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                        -Dsonar.projectName=${SONAR_PROJECT_KEY} \
+                        -Dsonar.host.url=${SONAR_HOST_URL} \
+                        -Dsonar.sources=client/src,server \
+                        -Dsonar.sourceEncoding=UTF-8 \
+                        -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/** \
+                        -Dsonar.verbose=true
+                    """
+                }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 7 — SONAR QUALITY GATE                          */
+        /* ===================================================== */
+
+        stage('Quality Gate') {
+
+            steps {
+
+                timeout(time: 10, unit: 'MINUTES') {
+
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+    }
+
+    /* ===================================================== */
+    /* POST BUILD ACTIONS                                     */
+    /* ===================================================== */
+
+    post {
+
+        success {
+
+            echo "Pipeline Executed Successfully ✅"
+        }
+
+        failure {
+
+            echo "Pipeline Failed ❌"
+        }
+
+        always {
+
+            cleanWs()
+        }
+    }
+}

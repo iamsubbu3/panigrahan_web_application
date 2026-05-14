@@ -1,0 +1,42 @@
+# ------------------------------------------------------------
+# Terraform State Files (CRITICAL - Never commit)
+# ------------------------------------------------------------
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# ------------------------------------------------------------
+# Terraform Working Directory
+# ------------------------------------------------------------
+.terraform/
+
+# ------------------------------------------------------------
+# Optional Overrides & Backup Files
+# ------------------------------------------------------------
+*.backup
+override.tf
+override.tf.json
+
+# ------------------------------------------------------------
+# Sensitive Variable Files
+# NOTE:
+# We are intentionally allowing terraform.tfvars for portfolio use.
+# In real production projects, you should uncomment the line below.
+# ------------------------------------------------------------
+# *.tfvars
+*.tfvars.json
+
+# ------------------------------------------------------------
+# Environment Variables
+# ------------------------------------------------------------
+.env
+.envrc
+
+# ------------------------------------------------------------
+# OS / Editor Junk
+# ------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
