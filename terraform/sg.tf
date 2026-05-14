@@ -79,7 +79,7 @@ resource "aws_security_group" "sg" {
   }
 
   ingress {
-    description = "Grafana Traffic Port"
+    description = "Panigrahan NodePort Traffic Port"
     from_port   = 30080
     to_port     = 30080
     protocol    = "tcp"
