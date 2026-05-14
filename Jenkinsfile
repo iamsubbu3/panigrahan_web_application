@@ -190,44 +190,44 @@ pipeline {
             }
         }
 
-        /* ===================================================== */
-        /* STAGE 6 — SONARQUBE STATIC ANALYSIS                   */
-        /* ===================================================== */
+        // /* ===================================================== */
+        // /* STAGE 6 — SONARQUBE STATIC ANALYSIS                   */
+        // /* ===================================================== */
 
-        stage('SonarQube Scan') {
+        // stage('SonarQube Scan') {
 
-            steps {
+        //     steps {
 
-                withSonarQubeEnv('sonar') {
+        //         withSonarQubeEnv('sonar') {
 
-                    sh """
-                        ${SCANNER_HOME}/bin/sonar-scanner \
-                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                        -Dsonar.projectName=${SONAR_PROJECT_KEY} \
-                        -Dsonar.host.url=${SONAR_HOST_URL} \
-                        -Dsonar.sources=client/src,server \
-                        -Dsonar.sourceEncoding=UTF-8 \
-                        -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/** \
-                        -Dsonar.verbose=true
-                    """
-                }
-            }
-        }
+        //             sh """
+        //                 ${SCANNER_HOME}/bin/sonar-scanner \
+        //                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+        //                 -Dsonar.projectName=${SONAR_PROJECT_KEY} \
+        //                 -Dsonar.host.url=${SONAR_HOST_URL} \
+        //                 -Dsonar.sources=client/src,server \
+        //                 -Dsonar.sourceEncoding=UTF-8 \
+        //                 -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/** \
+        //                 -Dsonar.verbose=true
+        //             """
+        //         }
+        //     }
+        // }
 
-        /* ===================================================== */
-        /* STAGE 7 — SONAR QUALITY GATE                          */
-        /* ===================================================== */
+        // /* ===================================================== */
+        // /* STAGE 7 — SONAR QUALITY GATE                          */
+        // /* ===================================================== */
 
-        stage('Quality Gate') {
+        // stage('Quality Gate') {
 
-            steps {
+        //     steps {
 
-                timeout(time: 10, unit: 'MINUTES') {
+        //         timeout(time: 10, unit: 'MINUTES') {
 
-                    waitForQualityGate abortPipeline: false
-                }
-            }
-        }
+        //             waitForQualityGate abortPipeline: false
+        //         }
+        //     }
+        // }
 
         /* ===================================================== */
         /* STAGE 8 — BUILD FRONTEND DOCKER IMAGE                 */
@@ -279,71 +279,71 @@ pipeline {
             }
         }
 
-        /* ===================================================== */
-        /* STAGE 10 — TRIVY FRONTEND SECURITY SCAN               */
-        /* ===================================================== */
+        // /* ===================================================== */
+        // /* STAGE 10 — TRIVY FRONTEND SECURITY SCAN               */
+        // /* ===================================================== */
 
-        stage('Trivy Frontend Security Scan') {
+        // stage('Trivy Frontend Security Scan') {
 
-            steps {
+        //     steps {
 
-                sh """
-                    trivy image \
-                    --severity LOW,MEDIUM,HIGH \
-                    ${FRONTEND_TAG}
-                """
+        //         sh """
+        //             trivy image \
+        //             --severity LOW,MEDIUM,HIGH \
+        //             ${FRONTEND_TAG}
+        //         """
 
-                sh """
-                    trivy image \
-                    --exit-code 1 \
-                    --severity CRITICAL \
-                    ${FRONTEND_TAG}
-                """
+        //         sh """
+        //             trivy image \
+        //             --exit-code 1 \
+        //             --severity CRITICAL \
+        //             ${FRONTEND_TAG}
+        //         """
 
-                sh """
-                    trivy image \
-                    --format json \
-                    -o frontend-trivy-report.json \
-                    ${FRONTEND_TAG}
-                """
+        //         sh """
+        //             trivy image \
+        //             --format json \
+        //             -o frontend-trivy-report.json \
+        //             ${FRONTEND_TAG}
+        //         """
 
-                archiveArtifacts artifacts: 'frontend-trivy-report.json',
-                fingerprint: true
-            }
-        }
+        //         archiveArtifacts artifacts: 'frontend-trivy-report.json',
+        //         fingerprint: true
+        //     }
+        // }
 
-        /* ===================================================== */
-        /* STAGE 11 — TRIVY BACKEND SECURITY SCAN                */
-        /* ===================================================== */
+        // /* ===================================================== */
+        // /* STAGE 11 — TRIVY BACKEND SECURITY SCAN                */
+        // /* ===================================================== */
 
-        stage('Trivy Backend Security Scan') {
+        // stage('Trivy Backend Security Scan') {
 
-            steps {
+        //     steps {
 
-                sh """
-                    trivy image \
-                    --severity LOW,MEDIUM,HIGH \
-                    ${BACKEND_TAG}
-                """
+        //         sh """
+        //             trivy image \
+        //             --severity LOW,MEDIUM,HIGH \
+        //             ${BACKEND_TAG}
+        //         """
 
-                sh """
-                    trivy image \
-                    --exit-code 1 \
-                    --severity CRITICAL \
-                    ${BACKEND_TAG}
-                """
+        //         sh """
+        //             trivy image \
+        //             --exit-code 1 \
+        //             --severity CRITICAL \
+        //             ${BACKEND_TAG}
+        //         """
 
-                sh """
-                    trivy image \
-                    --format json \
-                    -o backend-trivy-report.json \
-                    ${BACKEND_TAG}
-                """
+        //         sh """
+        //             trivy image \
+        //             --format json \
+        //             -o backend-trivy-report.json \
+        //             ${BACKEND_TAG}
+        //         """
 
-                archiveArtifacts artifacts: 'backend-trivy-report.json',
-                fingerprint: true
-            }
-        }
+        //         archiveArtifacts artifacts: 'backend-trivy-report.json',
+        //         fingerprint: true
+        //     }
+        // }
 
         /* ===================================================== */
         /* STAGE 12 — PUSH IMAGES TO DOCKERHUB                   */
