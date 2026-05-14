@@ -532,15 +532,11 @@ Hi Team,
 
 ✅ CI/CD Pipeline executed successfully.
 
-==================================================
-
 🔹 Job Name:
 ${JOB_NAME}
 
 🔹 Build Number:
 ${BUILD_NUMBER}
-
-==================================================
 
 🐳 Frontend Versioned Image:
 ${FRONTEND_TAG}
@@ -548,15 +544,11 @@ ${FRONTEND_TAG}
 🐳 Backend Versioned Image:
 ${BACKEND_TAG}
 
-==================================================
-
 🏷️ Frontend Latest Image:
 ${FRONTEND_LATEST}
 
 🏷️ Backend Latest Image:
 ${BACKEND_LATEST}
-
-==================================================
 
 🔗 Jenkins Build URL:
 ${BUILD_URL}
@@ -564,15 +556,12 @@ ${BUILD_URL}
 🔗 SonarQube Dashboard:
 ${SONAR_HOST_URL}/dashboard?id=${SONAR_PROJECT_KEY}
 
-==================================================
-
 ☸ Kubernetes Namespace:
 ${K8S_NAMESPACE}
 
+
 🚀 Deployment Environment:
 k3s Kubernetes Cluster
-
-==================================================
 
 Regards,
 DevSecOps Automation
@@ -595,7 +584,6 @@ Hi Team,
 
 ❌ CI/CD Pipeline FAILED.
 
-==================================================
 
 🔹 Job Name:
 ${JOB_NAME}
@@ -603,12 +591,8 @@ ${JOB_NAME}
 🔹 Build Number:
 ${BUILD_NUMBER}
 
-==================================================
-
 🔗 Jenkins Console Logs:
 ${BUILD_URL}console
-
-==================================================
 
 Possible Failure Areas:
 - SonarQube Quality Gate
@@ -616,8 +600,6 @@ Possible Failure Areas:
 - Trivy Security Scan
 - Docker Push Failure
 - Kubernetes Rollout Failure
-
-==================================================
 
 Please review Jenkins logs.
 
