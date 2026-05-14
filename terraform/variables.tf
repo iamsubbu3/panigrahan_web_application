@@ -44,76 +44,6 @@ variable "public_subnet_1_avail_zone" {
   type = string
 }
 
-variable "public_subnet_2_cidr_block" {
-  type = string
-}
-
-variable "public_subnet_2_name" {
-  type = string
-}
-
-variable "map_public_ip_on_launch_2" {
-  type = bool
-}
-
-variable "public_subnet_2_avail_zone" {
-  type = string
-}
-
-variable "public_subnet_3_cidr_block" {
-  type = string
-}
-
-variable "public_subnet_3_name" {
-  type = string
-}
-
-variable "map_public_ip_on_launch_3" {
-  type = bool
-}
-
-variable "public_subnet_3_avail_zone" {
-  type = string
-}
-
-# --- Private Subnets ---
-
-variable "private_subnet_1_cidr_block" {
-  type = string
-}
-
-variable "private_subnet_1_name" {
-  type = string
-}
-
-variable "private_subnet_1_avail_zone" {
-  type = string
-}
-
-variable "private_subnet_2_cidr_block" {
-  type = string
-}
-
-variable "private_subnet_2_name" {
-  type = string
-}
-
-variable "private_subnet_2_avail_zone" {
-  type = string
-}
-
-variable "private_subnet_3_cidr_block" {
-  type = string
-}
-
-variable "private_subnet_3_name" {
-  type = string
-}
-
-variable "private_subnet_3_avail_zone" {
-  type = string
-}
-
 ################################################################################
 # 3. GATEWAYS & ROUTING
 ################################################################################
@@ -122,27 +52,11 @@ variable "igw_name" {
   type = string
 }
 
-variable "eip_name" {
-  type = string
-}
-
-variable "nat_gw_name" {
-  type = string
-}
-
 variable "public_rt_cidr_block" {
   type = string
 }
 
 variable "public_rt_name" {
-  type = string
-}
-
-variable "private_rt_cidr_block" {
-  type = string
-}
-
-variable "private_rt_name" {
   type = string
 }
 

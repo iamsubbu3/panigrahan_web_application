@@ -1,32 +1,80 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
-  name: react-frontend
+  name: frontend
+  namespace: panigrahan
+
 spec:
-  replicas: 1
+  replicas: 2
+
   selector:
     matchLabels:
-      app: react-frontend
+      app: frontend
+
   template:
     metadata:
       labels:
-        app: react-frontend
+        app: frontend
+
     spec:
       containers:
-      - name: react-frontend
-        image: YOUR_DOCKERHUB_USERNAME/react-frontend:latest
+
+      - name: frontend
+
+        image: FRONTEND_IMAGE_PLACEHOLDER
+
+        imagePullPolicy: Always
+
         ports:
         - containerPort: 80
+
+        env:
+
+        - name: VITE_API_BASE_URL
+          value: "http://backend-service:8080"
+
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+
+          initialDelaySeconds: 15
+          periodSeconds: 10
+
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+
+          initialDelaySeconds: 30
+          periodSeconds: 15
+
+
 ---
 apiVersion: v1
 kind: Service
+
 metadata:
-  name: react-frontend-service
+  name: frontend-service
+  namespace: panigrahan
+
 spec:
-  type: LoadBalancer
   selector:
-    app: react-frontend
+    app: frontend
+
   ports:
-  - protocol: TCP
-    port: 80
+  - port: 80
     targetPort: 80
+    nodePort: 30080
+
+  type: NodePort

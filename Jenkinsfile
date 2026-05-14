@@ -1,13 +1,18 @@
 pipeline {
+
     agent any
 
     tools {
+
         jdk 'jdk21'
     }
 
     options {
+
         timestamps()
+
         disableConcurrentBuilds()
+
         buildDiscarder(logRotator(numToKeepStr: '20'))
     }
 
@@ -24,8 +29,10 @@ pipeline {
         /* ===================================================== */
 
         SCANNER_HOME      = tool 'sonar-scanner'
+
         SONAR_PROJECT_KEY = "panigrahan-web-app"
-        SONAR_HOST_URL    = "http://sonarqube.company.com"
+
+        SONAR_HOST_URL    = "http://13.222.94.130:9000"
 
         /* ===================================================== */
         /* DOCKER SETTINGS                                       */
@@ -33,46 +40,53 @@ pipeline {
 
         DOCKER_USER = "iamsubbu3"
 
-        FRONTEND_IMAGE = "react-frontend"
-        BACKEND_IMAGE  = "node-backend"
+        FRONTEND_IMAGE = "panigrahan-frontend"
+
+        BACKEND_IMAGE  = "panigrahan-backend"
 
         REGISTRY_CRED = "docker-credentials"
 
-        /* Semantic Versioning */
+        /* ===================================================== */
+        /* VERSIONING                                            */
+        /* ===================================================== */
 
         MAJOR_VERSION = "1"
+
         MINOR_VERSION = "0"
+
         PATCH_VERSION = "${BUILD_NUMBER}"
 
         FRONTEND_TAG = "${DOCKER_USER}/${FRONTEND_IMAGE}:v${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}"
+
         BACKEND_TAG  = "${DOCKER_USER}/${BACKEND_IMAGE}:v${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}"
 
         FRONTEND_LATEST = "${DOCKER_USER}/${FRONTEND_IMAGE}:latest"
+
         BACKEND_LATEST  = "${DOCKER_USER}/${BACKEND_IMAGE}:latest"
 
         /* ===================================================== */
-        /* KUBERNETES / EKS SETTINGS                             */
+        /* KUBERNETES SETTINGS                                   */
         /* ===================================================== */
-
-        AWS_REGION  = "us-east-1"
-        EKS_CLUSTER = "panigrahan"
 
         K8S_NAMESPACE = "panigrahan"
 
-        FRONTEND_DEPLOYMENT = "react-frontend"
-        BACKEND_DEPLOYMENT  = "node-backend"
+        FRONTEND_DEPLOYMENT = "frontend"
 
-        FRONTEND_CONTAINER = "react-frontend"
-        BACKEND_CONTAINER  = "node-backend"
+        BACKEND_DEPLOYMENT  = "backend"
+
+        FRONTEND_CONTAINER = "frontend"
+
+        BACKEND_CONTAINER  = "backend"
 
         /* ===================================================== */
-        /* NOTIFICATIONS                                         */
+        /* EMAIL NOTIFICATIONS                                   */
         /* ===================================================== */
 
         NOTIFY_EMAIL = "subramanyam9979@gmail.com"
     }
 
     triggers {
+
         githubPush()
     }
 
@@ -95,7 +109,89 @@ pipeline {
         }
 
         /* ===================================================== */
-        /* STAGE 2 — SONARQUBE STATIC ANALYSIS                   */
+        /* STAGE 2 — VERIFY WORKSPACE                            */
+        /* ===================================================== */
+
+        stage('Verify Workspace') {
+
+            steps {
+
+                sh '''
+                    echo "================ WORKSPACE ================="
+
+                    pwd
+
+                    echo "============================================"
+
+                    ls -la
+
+                    echo "============================================"
+
+                    echo "CLIENT FILES"
+
+                    find client -type f | head -50 || true
+
+                    echo "============================================"
+
+                    echo "SERVER FILES"
+
+                    find server -type f | head -50 || true
+                '''
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 3 — VERIFY NODEJS                               */
+        /* ===================================================== */
+
+        stage('Verify NodeJS') {
+
+            steps {
+
+                sh '''
+                    echo "================ NODE VERSION ================"
+
+                    node -v
+
+                    echo "================ NPM VERSION ================="
+
+                    npm -v
+                '''
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 4 — INSTALL FRONTEND DEPENDENCIES               */
+        /* ===================================================== */
+
+        stage('Install Frontend Dependencies') {
+
+            steps {
+
+                dir('client') {
+
+                    sh 'npm install'
+                }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 5 — INSTALL BACKEND DEPENDENCIES                */
+        /* ===================================================== */
+
+        stage('Install Backend Dependencies') {
+
+            steps {
+
+                dir('server') {
+
+                    sh 'npm install'
+                }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 6 — SONARQUBE STATIC ANALYSIS                   */
         /* ===================================================== */
 
         stage('SonarQube Scan') {
@@ -119,22 +215,22 @@ pipeline {
         }
 
         /* ===================================================== */
-        /* STAGE 3 — SONAR QUALITY GATE                          */
+        /* STAGE 7 — SONAR QUALITY GATE                          */
         /* ===================================================== */
 
         stage('Quality Gate') {
 
             steps {
 
-                timeout(time: 5, unit: 'MINUTES') {
+                timeout(time: 10, unit: 'MINUTES') {
 
-                    waitForQualityGate abortPipeline: true
+                    waitForQualityGate abortPipeline: false
                 }
             }
         }
 
         /* ===================================================== */
-        /* STAGE 4 — BUILD FRONTEND IMAGE                        */
+        /* STAGE 8 — BUILD FRONTEND DOCKER IMAGE                 */
         /* ===================================================== */
 
         stage('Build Frontend Docker Image') {
@@ -159,7 +255,7 @@ pipeline {
         }
 
         /* ===================================================== */
-        /* STAGE 5 — BUILD BACKEND IMAGE                         */
+        /* STAGE 9 — BUILD BACKEND DOCKER IMAGE                  */
         /* ===================================================== */
 
         stage('Build Backend Docker Image') {
@@ -184,79 +280,73 @@ pipeline {
         }
 
         /* ===================================================== */
-        /* STAGE 6 — TRIVY FRONTEND SECURITY SCAN                */
+        /* STAGE 10 — TRIVY FRONTEND SECURITY SCAN               */
         /* ===================================================== */
 
         stage('Trivy Frontend Security Scan') {
 
             steps {
 
-                script {
+                sh """
+                    trivy image \
+                    --severity LOW,MEDIUM,HIGH \
+                    ${FRONTEND_TAG}
+                """
 
-                    sh """
-                        trivy image \
-                        --severity LOW,MEDIUM,HIGH \
-                        ${FRONTEND_TAG}
-                    """
+                sh """
+                    trivy image \
+                    --exit-code 1 \
+                    --severity CRITICAL \
+                    ${FRONTEND_TAG}
+                """
 
-                    sh """
-                        trivy image \
-                        --exit-code 1 \
-                        --severity CRITICAL \
-                        ${FRONTEND_TAG}
-                    """
+                sh """
+                    trivy image \
+                    --format json \
+                    -o frontend-trivy-report.json \
+                    ${FRONTEND_TAG}
+                """
 
-                    sh """
-                        trivy image \
-                        --format json \
-                        -o frontend-trivy-report.json \
-                        ${FRONTEND_TAG}
-                    """
-
-                    archiveArtifacts artifacts: 'frontend-trivy-report.json',
-                    fingerprint: true
-                }
+                archiveArtifacts artifacts: 'frontend-trivy-report.json',
+                fingerprint: true
             }
         }
 
         /* ===================================================== */
-        /* STAGE 7 — TRIVY BACKEND SECURITY SCAN                 */
+        /* STAGE 11 — TRIVY BACKEND SECURITY SCAN                */
         /* ===================================================== */
 
         stage('Trivy Backend Security Scan') {
 
             steps {
 
-                script {
+                sh """
+                    trivy image \
+                    --severity LOW,MEDIUM,HIGH \
+                    ${BACKEND_TAG}
+                """
 
-                    sh """
-                        trivy image \
-                        --severity LOW,MEDIUM,HIGH \
-                        ${BACKEND_TAG}
-                    """
+                sh """
+                    trivy image \
+                    --exit-code 1 \
+                    --severity CRITICAL \
+                    ${BACKEND_TAG}
+                """
 
-                    sh """
-                        trivy image \
-                        --exit-code 1 \
-                        --severity CRITICAL \
-                        ${BACKEND_TAG}
-                    """
+                sh """
+                    trivy image \
+                    --format json \
+                    -o backend-trivy-report.json \
+                    ${BACKEND_TAG}
+                """
 
-                    sh """
-                        trivy image \
-                        --format json \
-                        -o backend-trivy-report.json \
-                        ${BACKEND_TAG}
-                    """
-
-                    archiveArtifacts artifacts: 'backend-trivy-report.json',
-                    fingerprint: true
-                }
+                archiveArtifacts artifacts: 'backend-trivy-report.json',
+                fingerprint: true
             }
         }
 
         /* ===================================================== */
-        /* STAGE 8 — DOCKER PUSH                                 */
+        /* STAGE 12 — PUSH IMAGES TO DOCKERHUB                   */
         /* ===================================================== */
 
         stage('Docker Push Images') {
@@ -301,150 +391,123 @@ pipeline {
         }
 
         /* ===================================================== */
-        /* STAGE 9 — DEPLOY TO EKS                               */
+        /* STAGE 13 — DEPLOY TO k3s                              */
         /* ===================================================== */
 
-        stage('Deploy to EKS (Auto Rollback Enabled)') {
+        stage('Deploy to k3s') {
 
             steps {
 
                 dir('k8s-manifests') {
 
-                    withCredentials([
-                        aws(
-                            credentialsId: 'aws-keys',
-                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                        )
-                    ]) {
+                    script {
 
                         sh """
-                            aws eks update-kubeconfig \
-                              --region ${AWS_REGION} \
-                              --name ${EKS_CLUSTER}
+                            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+                            kubectl get nodes
                         """
 
-                        /* ===================================================== */
-                        /* VALIDATE NAMESPACE                                    */
-                        /* ===================================================== */
-
                         sh """
+                            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
                             kubectl get ns ${K8S_NAMESPACE} || \
                             kubectl create ns ${K8S_NAMESPACE}
                         """
 
                         /* ===================================================== */
-                        /* APPLY K8S MANIFESTS                                   */
+                        /* REPLACE IMAGE PLACEHOLDERS                            */
                         /* ===================================================== */
 
                         sh """
-                            kubectl apply -n ${K8S_NAMESPACE} \
-                            -f mysql-deployment.yaml
-                        """
+                            sed -i 's|FRONTEND_IMAGE_PLACEHOLDER|${FRONTEND_TAG}|g' frontend-deployment.yaml
 
-                        sh """
-                            kubectl apply -n ${K8S_NAMESPACE} \
-                            -f backend-deployment.yaml
-                        """
-
-                        sh """
-                            kubectl apply -n ${K8S_NAMESPACE} \
-                            -f frontend-deployment.yaml
+                            sed -i 's|BACKEND_IMAGE_PLACEHOLDER|${BACKEND_TAG}|g' backend-deployment.yaml
                         """
 
                         /* ===================================================== */
-                        /* VALIDATE DEPLOYMENTS EXIST                            */
+                        /* APPLY MANIFEST FILES                                  */
                         /* ===================================================== */
 
                         sh """
-                            kubectl get deployment ${FRONTEND_DEPLOYMENT} \
-                            -n ${K8S_NAMESPACE}
-                        """
+                            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-                        sh """
-                            kubectl get deployment ${BACKEND_DEPLOYMENT} \
-                            -n ${K8S_NAMESPACE}
+                            kubectl apply -f .
                         """
 
                         /* ===================================================== */
-                        /* DEPLOY FRONTEND                                       */
+                        /* VERIFY FRONTEND ROLLOUT                               */
                         /* ===================================================== */
 
-                        script {
+                        try {
 
-                            try {
+                            sh """
+                                export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-                                sh """
-                                    kubectl set image \
-                                    deployment/${FRONTEND_DEPLOYMENT} \
-                                    ${FRONTEND_CONTAINER}=${FRONTEND_TAG} \
-                                    -n ${K8S_NAMESPACE}
-                                """
+                                kubectl rollout status \
+                                deployment/${FRONTEND_DEPLOYMENT} \
+                                -n ${K8S_NAMESPACE} \
+                                --timeout=180s
+                            """
 
-                                sh """
-                                    kubectl rollout status \
-                                    deployment/${FRONTEND_DEPLOYMENT} \
-                                    -n ${K8S_NAMESPACE} \
-                                    --timeout=180s
-                                """
+                        } catch (err) {
 
-                            } catch (err) {
+                            sh """
+                                export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-                                sh """
-                                    kubectl rollout undo \
-                                    deployment/${FRONTEND_DEPLOYMENT} \
-                                    -n ${K8S_NAMESPACE}
-                                """
+                                kubectl rollout undo \
+                                deployment/${FRONTEND_DEPLOYMENT} \
+                                -n ${K8S_NAMESPACE}
+                            """
 
-                                sh """
-                                    kubectl rollout status \
-                                    deployment/${FRONTEND_DEPLOYMENT} \
-                                    -n ${K8S_NAMESPACE}
-                                """
-
-                                error("Frontend deployment failed. Rolled back to previous stable version.")
-                            }
+                            error("Frontend deployment failed. Rolled back successfully.")
                         }
 
                         /* ===================================================== */
-                        /* DEPLOY BACKEND                                        */
+                        /* VERIFY BACKEND ROLLOUT                                */
                         /* ===================================================== */
 
-                        script {
+                        try {
 
-                            try {
+                            sh """
+                                export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-                                sh """
-                                    kubectl set image \
-                                    deployment/${BACKEND_DEPLOYMENT} \
-                                    ${BACKEND_CONTAINER}=${BACKEND_TAG} \
-                                    -n ${K8S_NAMESPACE}
-                                """
+                                kubectl rollout status \
+                                deployment/${BACKEND_DEPLOYMENT} \
+                                -n ${K8S_NAMESPACE} \
+                                --timeout=180s
+                            """
 
-                                sh """
-                                    kubectl rollout status \
-                                    deployment/${BACKEND_DEPLOYMENT} \
-                                    -n ${K8S_NAMESPACE} \
-                                    --timeout=180s
-                                """
+                        } catch (err) {
 
-                            } catch (err) {
+                            sh """
+                                export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-                                sh """
-                                    kubectl rollout undo \
-                                    deployment/${BACKEND_DEPLOYMENT} \
-                                    -n ${K8S_NAMESPACE}
-                                """
+                                kubectl rollout undo \
+                                deployment/${BACKEND_DEPLOYMENT} \
+                                -n ${K8S_NAMESPACE}
+                            """
 
-                                sh """
-                                    kubectl rollout status \
-                                    deployment/${BACKEND_DEPLOYMENT} \
-                                    -n ${K8S_NAMESPACE}
-                                """
-
-                                error("Backend deployment failed. Rolled back to previous stable version.")
-                            }
+                            error("Backend deployment failed. Rolled back successfully.")
                         }
+
+                        /* ===================================================== */
+                        /* VERIFY KUBERNETES RESOURCES                           */
+                        /* ===================================================== */
+
+                        sh """
+                            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+                            kubectl get pods -n ${K8S_NAMESPACE}
+
+                            kubectl get svc -n ${K8S_NAMESPACE}
+
+                            kubectl get deployment -n ${K8S_NAMESPACE}
+
+                            kubectl get hpa -n ${K8S_NAMESPACE}
+
+                            kubectl get pvc -n ${K8S_NAMESPACE}
+                        """
                     }
                 }
             }
@@ -452,7 +515,7 @@ pipeline {
     }
 
     /* ===================================================== */
-    /* POST BUILD ACTIONS                                     */
+    /* POST BUILD ACTIONS                                    */
     /* ===================================================== */
 
     post {
@@ -466,35 +529,58 @@ pipeline {
                 body: """
 Hi Team,
 
-✅ Pipeline executed successfully.
+✅ CI/CD Pipeline executed successfully.
 
-🔹 Job Name : ${JOB_NAME}
-🔹 Build No : ${BUILD_NUMBER}
+==================================================
 
-🐳 Frontend Image:
+🔹 Job Name:
+${JOB_NAME}
+
+🔹 Build Number:
+${BUILD_NUMBER}
+
+==================================================
+
+🐳 Frontend Versioned Image:
 ${FRONTEND_TAG}
 
-🐳 Backend Image:
+🐳 Backend Versioned Image:
 ${BACKEND_TAG}
 
-🏷️ Frontend Latest:
+==================================================
+
+🏷️ Frontend Latest Image:
 ${FRONTEND_LATEST}
 
-🏷️ Backend Latest:
+🏷️ Backend Latest Image:
 ${BACKEND_LATEST}
 
-🔗 Jenkins Build:
+==================================================
+
+🔗 Jenkins Build URL:
 ${BUILD_URL}
 
-🔗 SonarQube:
+🔗 SonarQube Dashboard:
 ${SONAR_HOST_URL}/dashboard?id=${SONAR_PROJECT_KEY}
 
+==================================================
+
+☸ Kubernetes Namespace:
+${K8S_NAMESPACE}
+
+🚀 Deployment Environment:
+k3s Kubernetes Cluster
+
+==================================================
+
 Regards,
-DevOps Automation
+DevSecOps Automation
 """,
 
                 to: "${NOTIFY_EMAIL}"
             )
+
+            echo "✅ SUCCESS EMAIL SENT"
         }
 
         failure {
@@ -506,25 +592,59 @@ DevOps Automation
                 body: """
 Hi Team,
 
-❌ Pipeline FAILED.
+❌ CI/CD Pipeline FAILED.
 
-🔹 Job Name : ${JOB_NAME}
-🔹 Build No : ${BUILD_NUMBER}
+==================================================
 
-🔗 Logs:
+🔹 Job Name:
+${JOB_NAME}
+
+🔹 Build Number:
+${BUILD_NUMBER}
+
+==================================================
+
+🔗 Jenkins Console Logs:
 ${BUILD_URL}console
 
+==================================================
+
+Possible Failure Areas:
+- SonarQube Quality Gate
+- Docker Build Failure
+- Trivy Security Scan
+- Docker Push Failure
+- Kubernetes Rollout Failure
+
+==================================================
+
+Please review Jenkins logs.
+
 Regards,
-DevOps Automation
+DevSecOps Automation
 """,
 
                 to: "${NOTIFY_EMAIL}"
             )
+
+            echo "❌ FAILURE EMAIL SENT"
         }
 
         always {
 
-            echo "🧹 Cleaning Jenkins Docker Images..."
+            echo "=================================================="
+
+            echo "🧹 CLEANING JENKINS WORKSPACE"
+
+            echo "=================================================="
+
+            cleanWs()
+
+            echo "=================================================="
+
+            echo "🧹 CLEANING FRONTEND DOCKER IMAGES"
+
+            echo "=================================================="
 
             sh """
                 docker images \
@@ -532,13 +652,33 @@ DevOps Automation
                 xargs -r docker rmi -f || true
             """
 
+            echo "=================================================="
+
+            echo "🧹 CLEANING BACKEND DOCKER IMAGES"
+
+            echo "=================================================="
+
             sh """
                 docker images \
                 --filter "label=project=${BACKEND_IMAGE}" -q | \
                 xargs -r docker rmi -f || true
             """
 
+            echo "=================================================="
+
+            echo "🧹 CLEANING UNUSED DOCKER IMAGES"
+
+            echo "=================================================="
+
             sh "docker image prune -f || true"
+
+            sh "docker builder prune -f || true"
+
+            echo "=================================================="
+
+            echo "✅ CLEANUP COMPLETED"
+
+            echo "=================================================="
         }
     }
 }

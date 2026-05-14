@@ -70,6 +70,22 @@ resource "aws_security_group" "sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "Grafana Traffic Port"
+    from_port   = 32000
+    to_port     = 32000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Grafana Traffic Port"
+    from_port   = 30080
+    to_port     = 30080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   ################################################################################
   # 3. OUTBOUND RULES (EGRESS)
   ################################################################################
