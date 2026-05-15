@@ -79,9 +79,17 @@ resource "aws_security_group" "sg" {
   }
 
   ingress {
-    description = "Panigrahan NodePort Traffic Port"
+    description = "Panigrahan NodePort Frontend Traffic Port"
     from_port   = 30080
     to_port     = 30080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Panigrahan NodePort Backend Traffic Port"
+    from_port   = 30081
+    to_port     = 30081
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }

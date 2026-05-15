@@ -25,7 +25,7 @@ public_rt_name       = "panigrahan-public-rt"
 # 3. SECURITY GROUPS
 ################################################################################
 sg_name         = "panigrahan-sg"
-# my_ip           = ["49.206.131.43/32", "157.50.80.166/32", "223.185.128.1/32"]
+my_ip           = "49.206.131.43/32"
 
 # Instance 1
 public_instance_ami_1              = "ami-05cf1e9f73fbad2e2"

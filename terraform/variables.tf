@@ -68,10 +68,10 @@ variable "sg_name" {
   type = string
 }
 
-# variable "my_ip" {
-#   description = "Local IP for SSH admin access"
-#   type        = string
-# }
+variable "my_ip" {
+  description = "Local IP for SSH admin access"
+  type        = string
+}
 
 ################################################################################
 # 5. EC2 INSTANCES (Jenkins)
