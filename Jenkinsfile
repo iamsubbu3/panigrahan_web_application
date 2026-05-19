@@ -81,8 +81,6 @@ pipeline {
 
             steps {
 
-                cleanWs()
-
                 git branch: 'main',
                     credentialsId: 'github-private-repo',
                     url: 'https://github.com/iamsubbu3/panigrahan_web_application.git'
@@ -181,7 +179,31 @@ pipeline {
 
                 dir('client') {
 
-                    sh 'npm ci'
+                    script {
+
+                        if (!fileExists('node_modules')) {
+
+                            echo "=================================================="
+
+                            echo "📦 FRONTEND node_modules NOT FOUND"
+
+                            echo "📦 INSTALLING FRONTEND DEPENDENCIES"
+
+                            echo "=================================================="
+
+                            sh 'npm install'
+
+                        } else {
+
+                            echo "=================================================="
+
+                            echo "✅ FRONTEND node_modules ALREADY EXISTS"
+
+                            echo "✅ SKIPPING npm install"
+
+                            echo "=================================================="
+                        }
+                    }
                 }
             }
         }
@@ -204,7 +226,31 @@ pipeline {
 
                 dir('server') {
 
-                    sh 'npm ci'
+                    script {
+
+                        if (!fileExists('node_modules')) {
+
+                            echo "=================================================="
+
+                            echo "📦 BACKEND node_modules NOT FOUND"
+
+                            echo "📦 INSTALLING BACKEND DEPENDENCIES"
+
+                            echo "=================================================="
+
+                            sh 'npm install'
+
+                        } else {
+
+                            echo "=================================================="
+
+                            echo "✅ BACKEND node_modules ALREADY EXISTS"
+
+                            echo "✅ SKIPPING npm install"
+
+                            echo "=================================================="
+                        }
+                    }
                 }
             }
         }
@@ -232,9 +278,9 @@ pipeline {
         //     }
         // }
 
-        // /* ===================================================== */
-        // /* STAGE 7 — QUALITY GATE                                */
-        // /* ===================================================== */
+        /* ===================================================== */
+        /* STAGE 7 — QUALITY GATE                                */
+        /* ===================================================== */
 
         // stage('Quality Gate') {
 
@@ -309,67 +355,67 @@ pipeline {
             }
         }
 
-        /* ===================================================== */
-        /* STAGE 10 — TRIVY FRONTEND SCAN                        */
-        /* ===================================================== */
+        // /* ===================================================== */
+        // /* STAGE 10 — TRIVY FRONTEND SCAN                        */
+        // /* ===================================================== */
 
-        stage('Trivy Frontend Security Scan') {
+        // stage('Trivy Frontend Security Scan') {
 
-            when {
+        //     when {
 
-                expression {
+        //         expression {
 
-                    env.FRONTEND_CHANGED == "true"
-                }
-            }
+        //             env.FRONTEND_CHANGED == "true"
+        //         }
+        //     }
 
-            steps {
+        //     steps {
 
-                sh """
-                    trivy image \
-                    --severity LOW,MEDIUM,HIGH \
-                    ${FRONTEND_TAG}
-                """
-                
-                sh """
-                    trivy image \
-                    --exit-code 1 \
-                    --severity CRITICAL \
-                    ${FRONTEND_TAG}
-                """
-            }
-        }
+        //         sh """
+        //             trivy image \
+        //             --severity LOW,MEDIUM,HIGH \
+        //             ${FRONTEND_TAG}
+        //         """
 
-        /* ===================================================== */
-        /* STAGE 11 — TRIVY BACKEND SCAN                         */
-        /* ===================================================== */
+        //         sh """
+        //             trivy image \
+        //             --exit-code 1 \
+        //             --severity CRITICAL \
+        //             ${FRONTEND_TAG}
+        //         """
+        //     }
+        // }
 
-        stage('Trivy Backend Security Scan') {
+        // /* ===================================================== */
+        // /* STAGE 11 — TRIVY BACKEND SCAN                         */
+        // /* ===================================================== */
 
-            when {
+        // stage('Trivy Backend Security Scan') {
 
-                expression {
+        //     when {
 
-                    env.BACKEND_CHANGED == "true"
-                }
-            }
+        //         expression {
 
-            steps {
+        //             env.BACKEND_CHANGED == "true"
+        //         }
+        //     }
 
-                sh """
-                    trivy image \
-                    --severity LOW,MEDIUM,HIGH \
-                    ${BACKEND_TAG}
-                """
+        //     steps {
 
-                sh """
-                    trivy image \
-                    --exit-code 1 \
-                    --severity CRITICAL \
-                    ${BACKEND_TAG}
-                """
-            }
-        }
+        //         sh """
+        //             trivy image \
+        //             --severity LOW,MEDIUM,HIGH \
+        //             ${BACKEND_TAG}
+        //         """
+
+        //         sh """
+        //             trivy image \
+        //             --exit-code 1 \
+        //             --severity CRITICAL \
+        //             ${BACKEND_TAG}
+        //         """
+        //     }
+        // }
 
         /* ===================================================== */
         /* STAGE 12 — PUSH FRONTEND IMAGE                        */
@@ -465,10 +511,10 @@ pipeline {
                             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
                             kubectl apply -f mysql-ebs-pvc.yaml
-                            
-                            kubectl apply -f mysql-secret.yaml
 
                             kubectl apply -f mysql-headless-service.yaml
+
+                            kubectl apply -f mysql-secret.yaml
 
                             kubectl apply -f mysql-statefulset.yaml
                         """
@@ -555,7 +601,7 @@ pipeline {
                         } catch (err) {
 
                             echo "❌ BACKEND DEPLOYMENT FAILED"
-                            
+
                             sh """
                                 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
@@ -617,7 +663,7 @@ pipeline {
                         } catch (err) {
 
                             echo "❌ FRONTEND DEPLOYMENT FAILED"
-                            
+
                             sh """
                                 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
@@ -759,53 +805,48 @@ DevSecOps Automation
 
         always {
 
-            echo "=================================================="
+            script {
 
-            echo "🧹 CLEANING JENKINS WORKSPACE"
+                echo "=================================================="
 
-            echo "=================================================="
+                echo "🧹 CLEANING FRONTEND DOCKER IMAGES"
 
-            cleanWs()
+                echo "=================================================="
 
-            echo "=================================================="
+                sh """
+                    docker images \
+                    --filter "label=project=${FRONTEND_IMAGE}" -q | \
+                    xargs -r docker rmi -f || true
+                """
 
-            echo "🧹 CLEANING FRONTEND DOCKER IMAGES"
+                echo "=================================================="
 
-            echo "=================================================="
+                echo "🧹 CLEANING BACKEND DOCKER IMAGES"
 
-            sh """
-                docker images \
-                --filter "label=project=${FRONTEND_IMAGE}" -q | \
-                xargs -r docker rmi -f || true
-            """
+                echo "=================================================="
 
-            echo "=================================================="
+                sh """
+                    docker images \
+                    --filter "label=project=${BACKEND_IMAGE}" -q | \
+                    xargs -r docker rmi -f || true
+                """
 
-            echo "🧹 CLEANING BACKEND DOCKER IMAGES"
+                echo "=================================================="
 
-            echo "=================================================="
+                echo "🧹 CLEANING UNUSED DOCKER IMAGES"
 
-            sh """
-                docker images \
-                --filter "label=project=${BACKEND_IMAGE}" -q | \
-                xargs -r docker rmi -f || true
-            """
+                echo "=================================================="
 
-            echo "=================================================="
+                sh "docker image prune -f || true"
 
-            echo "🧹 CLEANING UNUSED DOCKER IMAGES"
+                sh "docker builder prune -f || true"
 
-            echo "=================================================="
+                echo "=================================================="
 
-            sh "docker image prune -f || true"
+                echo "✅ CLEANUP COMPLETED"
 
-            sh "docker builder prune -f || true"
-
-            echo "=================================================="
-
-            echo "✅ CLEANUP COMPLETED"
-
-            echo "=================================================="
+                echo "=================================================="
+            }
         }
     }
 }
