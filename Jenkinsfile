@@ -459,40 +459,47 @@ pipeline {
 
                 dir('k8s-manifests') {
 
-                    sh """
-                        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
-                        kubectl apply -f mysql-ebs-pvc.yaml
-
-                        kubectl apply -f mysql-secret.yaml
-
-                        kubectl apply -f mysql-headless-service.yaml
-
-                        kubectl apply -f mysql-statefulset.yaml
-                    """
-
-                    try {
+                    script {
 
                         sh """
                             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-                            kubectl rollout status \
-                            deployment/${MYSQL_DEPLOYMENT} \
-                            -n ${K8S_NAMESPACE} \
-                            --timeout=180s
+                            kubectl apply -f mysql-secret.yaml
+
+                            kubectl apply -f mysql-headless-service.yaml
+
+                            kubectl apply -f mysql-service.yaml
+
+                            kubectl apply -f mysql-statefulset.yaml
                         """
 
-                    } catch (err) {
+                        try {
 
-                        sh """
-                            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+                            sh """
+                                export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-                            kubectl rollout undo \
-                            deployment/${MYSQL_DEPLOYMENT} \
-                            -n ${K8S_NAMESPACE}
-                        """
+                                kubectl rollout status \
+                                statefulset/${MYSQL_DEPLOYMENT} \
+                                -n ${K8S_NAMESPACE} \
+                                --timeout=180s
+                            """
 
-                        error("MySQL deployment failed. Rolled back successfully.")
+                        } catch (err) {
+
+                            echo "❌ MYSQL STATEFULSET DEPLOYMENT FAILED"
+
+                            sh """
+                                export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+                                kubectl get pods -n ${K8S_NAMESPACE}
+
+                                kubectl describe statefulset ${MYSQL_DEPLOYMENT} -n ${K8S_NAMESPACE} || true
+
+                                kubectl logs statefulset/${MYSQL_DEPLOYMENT} -n ${K8S_NAMESPACE} || true
+                            """
+
+                            error("MySQL StatefulSet deployment failed.")
+                        }
                     }
                 }
             }
@@ -547,6 +554,8 @@ pipeline {
 
                         } catch (err) {
 
+                            echo "❌ BACKEND DEPLOYMENT FAILED"
+                            
                             sh """
                                 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
@@ -607,6 +616,8 @@ pipeline {
 
                         } catch (err) {
 
+                            echo "❌ FRONTEND DEPLOYMENT FAILED"
+                            
                             sh """
                                 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
