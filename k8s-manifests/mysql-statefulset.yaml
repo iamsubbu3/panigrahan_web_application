@@ -1,11 +1,13 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 
 metadata:
   name: mysql
   namespace: panigrahan
 
 spec:
+  serviceName: mysql-headless
+
   replicas: 1
 
   selector:
@@ -23,6 +25,8 @@ spec:
       - name: mysql
 
         image: mysql:8
+
+        imagePullPolicy: Always
 
         ports:
         - containerPort: 3306
@@ -73,6 +77,8 @@ spec:
 
           initialDelaySeconds: 20
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
 
         livenessProbe:
           tcpSocket:
@@ -80,12 +86,23 @@ spec:
 
           initialDelaySeconds: 40
           periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 6
 
-      volumes:
+  volumeClaimTemplates:
 
-      - name: mysql-storage
-        persistentVolumeClaim:
-          claimName: mysql-pvc
+  - metadata:
+      name: mysql-storage
+
+    spec:
+      accessModes:
+        - ReadWriteOnce
+
+      storageClassName: gp3-storage
+
+      resources:
+        requests:
+          storage: 10Gi
 
 ---
 apiVersion: v1
@@ -100,7 +117,7 @@ spec:
     app: mysql
 
   ports:
-  - port: 3306
-    targetPort: 3306
+    - port: 3306
+      targetPort: 3306
 
   type: ClusterIP

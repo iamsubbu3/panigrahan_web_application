@@ -19,7 +19,7 @@ LABEL environment="production"
 WORKDIR /app
 
 # =========================================================
-# COPY PACKAGE FILES
+# COPY PACKAGE FILES 
 # =========================================================
 
 COPY package*.json ./

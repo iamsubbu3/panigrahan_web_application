@@ -1,19 +1,19 @@
-# ################################################################################
-# # 1. TERRAFORM STATE STORAGE
-# # Creates the S3 bucket to store the remote terraform.tfstate file.
-# ################################################################################
+################################################################################
+# 1. TERRAFORM STATE STORAGE
+# Creates the S3 bucket to store the remote terraform.tfstate file.
+################################################################################
 
-# resource "aws_s3_bucket" "s3" {
-#   bucket = var.tfstate_backup_s3_bucket_name
+resource "aws_s3_bucket" "s3" {
+  bucket = var.backup_and_logs_s3_bucket_name
 
-#   # Allows the bucket to be deleted even if it contains state files
-#   force_destroy = true 
+  # Allows the bucket to be deleted even if it contains state files
+  force_destroy = true 
 
-#   tags = {
-#     Name        = var.tfstate_backup_s3_tag_name
-#     Environment = var.tfstate_backup_s3_environment_name
-#   }
-# }
+  tags = {
+    Name        = var.backup_and_logs_s3_tag_name
+    Environment = var.tfstate_backup_s3_environment_name
+  }
+}
 
 # ################################################################################
 # # 2. BUCKET SECURITY & SAFETY

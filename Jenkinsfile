@@ -48,24 +48,6 @@ pipeline {
         REGISTRY_CRED = "docker-credentials"
 
         /* ===================================================== */
-        /* VERSIONING                                            */
-        /* ===================================================== */
-
-        MAJOR_VERSION = "1"
-
-        MINOR_VERSION = "0"
-
-        PATCH_VERSION = "${BUILD_NUMBER}"
-
-        FRONTEND_TAG = "${DOCKER_USER}/${FRONTEND_IMAGE}:v${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}"
-
-        BACKEND_TAG  = "${DOCKER_USER}/${BACKEND_IMAGE}:v${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}"
-
-        FRONTEND_LATEST = "${DOCKER_USER}/${FRONTEND_IMAGE}:latest"
-
-        BACKEND_LATEST  = "${DOCKER_USER}/${BACKEND_IMAGE}:latest"
-
-        /* ===================================================== */
         /* KUBERNETES SETTINGS                                   */
         /* ===================================================== */
 
@@ -75,9 +57,7 @@ pipeline {
 
         BACKEND_DEPLOYMENT  = "backend"
 
-        FRONTEND_CONTAINER = "frontend"
-
-        BACKEND_CONTAINER  = "backend"
+        MYSQL_DEPLOYMENT = "mysql"
 
         /* ===================================================== */
         /* EMAIL NOTIFICATIONS                                   */
@@ -94,7 +74,7 @@ pipeline {
     stages {
 
         /* ===================================================== */
-        /* STAGE 1 — CHECKOUT SOURCE CODE                        */
+        /* STAGE 1 — CHECKOUT                                    */
         /* ===================================================== */
 
         stage('Checkout') {
@@ -106,43 +86,70 @@ pipeline {
                 git branch: 'main',
                     credentialsId: 'github-private-repo',
                     url: 'https://github.com/iamsubbu3/panigrahan_web_application.git'
+
+                script {
+
+                    env.APP_VERSION = sh(
+                        script: '''
+                            git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0"
+                        ''',
+                        returnStdout: true
+                    ).trim()
+
+                    env.FRONTEND_TAG = "${DOCKER_USER}/${FRONTEND_IMAGE}:${APP_VERSION}"
+
+                    env.BACKEND_TAG = "${DOCKER_USER}/${BACKEND_IMAGE}:${APP_VERSION}"
+
+                    env.FRONTEND_LATEST = "${DOCKER_USER}/${FRONTEND_IMAGE}:latest"
+
+                    env.BACKEND_LATEST = "${DOCKER_USER}/${BACKEND_IMAGE}:latest"
+
+                    echo "=================================================="
+
+                    echo "APPLICATION VERSION: ${APP_VERSION}"
+
+                    echo "=================================================="
+                }
             }
         }
 
         /* ===================================================== */
-        /* STAGE 2 — VERIFY WORKSPACE                            */
+        /* STAGE 2 — DETECT CHANGES                              */
         /* ===================================================== */
 
-        stage('Verify Workspace') {
+        stage('Detect Changes') {
 
             steps {
 
-                sh '''
-                    echo "================ WORKSPACE ================="
+                script {
 
-                    pwd
+                    env.FRONTEND_CHANGED = sh(
+                        script: """
+                            git diff --name-only HEAD~1 HEAD | grep '^client/' > /dev/null
+                        """,
+                        returnStatus: true
+                    ) == 0 ? "true" : "false"
 
-                    echo "============================================"
+                    env.BACKEND_CHANGED = sh(
+                        script: """
+                            git diff --name-only HEAD~1 HEAD | grep '^server/' > /dev/null
+                        """,
+                        returnStatus: true
+                    ) == 0 ? "true" : "false"
 
-                    ls -la
+                    echo "=================================================="
 
-                    echo "============================================"
+                    echo "FRONTEND CHANGED: ${FRONTEND_CHANGED}"
 
-                    echo "CLIENT FILES"
+                    echo "BACKEND CHANGED: ${BACKEND_CHANGED}"
 
-                    find client -type f | head -50 || true
-
-                    echo "============================================"
-
-                    echo "SERVER FILES"
-
-                    find server -type f | head -50 || true
-                '''
+                    echo "=================================================="
+                }
             }
         }
 
         /* ===================================================== */
-        /* STAGE 3 — VERIFY NODEJS                               */
+        /* STAGE 3 — VERIFY NODE                                 */
         /* ===================================================== */
 
         stage('Verify NodeJS') {
@@ -150,12 +157,7 @@ pipeline {
             steps {
 
                 sh '''
-                    echo "================ NODE VERSION ================"
-
                     node -v
-
-                    echo "================ NPM VERSION ================="
-
                     npm -v
                 '''
             }
@@ -167,11 +169,19 @@ pipeline {
 
         stage('Install Frontend Dependencies') {
 
+            when {
+
+                expression {
+
+                    env.FRONTEND_CHANGED == "true"
+                }
+            }
+
             steps {
 
                 dir('client') {
 
-                    sh 'npm install'
+                    sh 'npm ci'
                 }
             }
         }
@@ -182,18 +192,26 @@ pipeline {
 
         stage('Install Backend Dependencies') {
 
+            when {
+
+                expression {
+
+                    env.BACKEND_CHANGED == "true"
+                }
+            }
+
             steps {
 
                 dir('server') {
 
-                    sh 'npm install'
+                    sh 'npm ci'
                 }
             }
         }
 
-        // /* ===================================================== */
-        // /* STAGE 6 — SONARQUBE STATIC ANALYSIS                   */
-        // /* ===================================================== */
+        /* ===================================================== */
+        /* STAGE 6 — SONARQUBE SCAN                              */
+        /* ===================================================== */
 
         // stage('SonarQube Scan') {
 
@@ -208,15 +226,14 @@ pipeline {
         //                 -Dsonar.host.url=${SONAR_HOST_URL} \
         //                 -Dsonar.sources=client/src,server \
         //                 -Dsonar.sourceEncoding=UTF-8 \
-        //                 -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/** \
-        //                 -Dsonar.verbose=true
+        //                 -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**
         //             """
         //         }
         //     }
         // }
 
         // /* ===================================================== */
-        // /* STAGE 7 — SONAR QUALITY GATE                          */
+        // /* STAGE 7 — QUALITY GATE                                */
         // /* ===================================================== */
 
         // stage('Quality Gate') {
@@ -225,16 +242,24 @@ pipeline {
 
         //         timeout(time: 10, unit: 'MINUTES') {
 
-        //             waitForQualityGate abortPipeline: false
+        //             waitForQualityGate abortPipeline: true
         //         }
         //     }
         // }
 
         /* ===================================================== */
-        /* STAGE 8 — BUILD FRONTEND DOCKER IMAGE                 */
+        /* STAGE 8 — BUILD FRONTEND IMAGE                        */
         /* ===================================================== */
 
         stage('Build Frontend Docker Image') {
+
+            when {
+
+                expression {
+
+                    env.FRONTEND_CHANGED == "true"
+                }
+            }
 
             steps {
 
@@ -244,8 +269,6 @@ pipeline {
 
                         docker.build(
                             FRONTEND_TAG,
-
-                            "--pull " +
                             "--label build_number=${BUILD_NUMBER} " +
                             "--label git_commit=${GIT_COMMIT} " +
                             "--label project=${FRONTEND_IMAGE} ."
@@ -256,10 +279,18 @@ pipeline {
         }
 
         /* ===================================================== */
-        /* STAGE 9 — BUILD BACKEND DOCKER IMAGE                  */
+        /* STAGE 9 — BUILD BACKEND IMAGE                         */
         /* ===================================================== */
 
         stage('Build Backend Docker Image') {
+
+            when {
+
+                expression {
+
+                    env.BACKEND_CHANGED == "true"
+                }
+            }
 
             steps {
 
@@ -269,8 +300,6 @@ pipeline {
 
                         docker.build(
                             BACKEND_TAG,
-
-                            "--pull " +
                             "--label build_number=${BUILD_NUMBER} " +
                             "--label git_commit=${GIT_COMMIT} " +
                             "--label project=${BACKEND_IMAGE} ."
@@ -280,77 +309,81 @@ pipeline {
             }
         }
 
-        // /* ===================================================== */
-        // /* STAGE 10 — TRIVY FRONTEND SECURITY SCAN               */
-        // /* ===================================================== */
-
-        // stage('Trivy Frontend Security Scan') {
-
-        //     steps {
-
-        //         sh """
-        //             trivy image \
-        //             --severity LOW,MEDIUM,HIGH \
-        //             ${FRONTEND_TAG}
-        //         """
-
-        //         sh """
-        //             trivy image \
-        //             --exit-code 1 \
-        //             --severity CRITICAL \
-        //             ${FRONTEND_TAG}
-        //         """
-
-        //         sh """
-        //             trivy image \
-        //             --format json \
-        //             -o frontend-trivy-report.json \
-        //             ${FRONTEND_TAG}
-        //         """
-
-        //         archiveArtifacts artifacts: 'frontend-trivy-report.json',
-        //         fingerprint: true
-        //     }
-        // }
-
-        // /* ===================================================== */
-        // /* STAGE 11 — TRIVY BACKEND SECURITY SCAN                */
-        // /* ===================================================== */
-
-        // stage('Trivy Backend Security Scan') {
-
-        //     steps {
-
-        //         sh """
-        //             trivy image \
-        //             --severity LOW,MEDIUM,HIGH \
-        //             ${BACKEND_TAG}
-        //         """
-
-        //         sh """
-        //             trivy image \
-        //             --exit-code 1 \
-        //             --severity CRITICAL \
-        //             ${BACKEND_TAG}
-        //         """
-
-        //         sh """
-        //             trivy image \
-        //             --format json \
-        //             -o backend-trivy-report.json \
-        //             ${BACKEND_TAG}
-        //         """
-
-        //         archiveArtifacts artifacts: 'backend-trivy-report.json',
-        //         fingerprint: true
-        //     }
-        // }
-
         /* ===================================================== */
-        /* STAGE 12 — PUSH IMAGES TO DOCKERHUB                   */
+        /* STAGE 10 — TRIVY FRONTEND SCAN                        */
         /* ===================================================== */
 
-        stage('Docker Push Images') {
+        stage('Trivy Frontend Security Scan') {
+
+            when {
+
+                expression {
+
+                    env.FRONTEND_CHANGED == "true"
+                }
+            }
+
+            steps {
+
+                sh """
+                    trivy image \
+                    --severity LOW,MEDIUM,HIGH \
+                    ${FRONTEND_TAG}
+                """
+                
+                sh """
+                    trivy image \
+                    --exit-code 1 \
+                    --severity CRITICAL \
+                    ${FRONTEND_TAG}
+                """
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 11 — TRIVY BACKEND SCAN                         */
+        /* ===================================================== */
+
+        stage('Trivy Backend Security Scan') {
+
+            when {
+
+                expression {
+
+                    env.BACKEND_CHANGED == "true"
+                }
+            }
+
+            steps {
+
+                sh """
+                    trivy image \
+                    --severity LOW,MEDIUM,HIGH \
+                    ${BACKEND_TAG}
+                """
+
+                sh """
+                    trivy image \
+                    --exit-code 1 \
+                    --severity CRITICAL \
+                    ${BACKEND_TAG}
+                """
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 12 — PUSH FRONTEND IMAGE                        */
+        /* ===================================================== */
+
+        stage('Push Frontend Docker Image') {
+
+            when {
+
+                expression {
+
+                    env.FRONTEND_CHANGED == "true"
+                }
+            }
 
             steps {
 
@@ -363,8 +396,6 @@ pipeline {
                         ]
                     ) {
 
-                        /* FRONTEND */
-
                         sh "docker push ${FRONTEND_TAG}"
 
                         sh """
@@ -374,8 +405,35 @@ pipeline {
                         """
 
                         sh "docker push ${FRONTEND_LATEST}"
+                    }
+                }
+            }
+        }
 
-                        /* BACKEND */
+        /* ===================================================== */
+        /* STAGE 13 — PUSH BACKEND IMAGE                         */
+        /* ===================================================== */
+
+        stage('Push Backend Docker Image') {
+
+            when {
+
+                expression {
+
+                    env.BACKEND_CHANGED == "true"
+                }
+            }
+
+            steps {
+
+                script {
+
+                    withDockerRegistry(
+                        [
+                            credentialsId: REGISTRY_CRED,
+                            url: 'https://index.docker.io/v1/'
+                        ]
+                    ) {
 
                         sh "docker push ${BACKEND_TAG}"
 
@@ -392,10 +450,67 @@ pipeline {
         }
 
         /* ===================================================== */
-        /* STAGE 13 — DEPLOY TO k3s                              */
+        /* STAGE 14 — DEPLOY MYSQL                               */
         /* ===================================================== */
 
-        stage('Deploy to k3s') {
+        stage('Deploy MySQL') {
+
+            steps {
+
+                dir('k8s-manifests') {
+
+                    sh """
+                        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+                        kubectl apply -f mysql-ebs-pvc.yaml
+
+                        kubectl apply -f mysql-secret.yaml
+
+                        kubectl apply -f mysql-headless-service.yaml
+
+                        kubectl apply -f mysql-statefulset.yaml
+                    """
+
+                    try {
+
+                        sh """
+                            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+                            kubectl rollout status \
+                            deployment/${MYSQL_DEPLOYMENT} \
+                            -n ${K8S_NAMESPACE} \
+                            --timeout=180s
+                        """
+
+                    } catch (err) {
+
+                        sh """
+                            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+                            kubectl rollout undo \
+                            deployment/${MYSQL_DEPLOYMENT} \
+                            -n ${K8S_NAMESPACE}
+                        """
+
+                        error("MySQL deployment failed. Rolled back successfully.")
+                    }
+                }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 15 — DEPLOY BACKEND                             */
+        /* ===================================================== */
+
+        stage('Deploy Backend') {
+
+            when {
+
+                expression {
+
+                    env.BACKEND_CHANGED == "true"
+                }
+            }
 
             steps {
 
@@ -404,69 +519,20 @@ pipeline {
                     script {
 
                         sh """
-                            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
-                            kubectl get nodes
-                        """
-
-                        sh """
-                            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
-                            kubectl get ns ${K8S_NAMESPACE} || \
-                            kubectl create ns ${K8S_NAMESPACE}
-                        """
-
-                        /* ===================================================== */
-                        /* REPLACE IMAGE PLACEHOLDERS                            */
-                        /* ===================================================== */
-
-                        sh """
-                            sed -i 's|FRONTEND_IMAGE_PLACEHOLDER|${FRONTEND_TAG}|g' frontend-deployment.yaml
-
                             sed -i 's|BACKEND_IMAGE_PLACEHOLDER|${BACKEND_TAG}|g' backend-deployment.yaml
                         """
 
-                        /* ===================================================== */
-                        /* APPLY MANIFEST FILES                                  */
-                        /* ===================================================== */
-
                         sh """
                             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-                            kubectl apply -f .
+                            kubectl apply -f backend-configmap.yaml
+
+                            kubectl apply -f backend-secret.yaml
+
+                            kubectl apply -f backend-deployment.yaml
+
+                            kubectl apply -f backend-hpa.yaml
                         """
-
-                        /* ===================================================== */
-                        /* VERIFY FRONTEND ROLLOUT                               */
-                        /* ===================================================== */
-
-                        try {
-
-                            sh """
-                                export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
-                                kubectl rollout status \
-                                deployment/${FRONTEND_DEPLOYMENT} \
-                                -n ${K8S_NAMESPACE} \
-                                --timeout=180s
-                            """
-
-                        } catch (err) {
-
-                            sh """
-                                export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
-                                kubectl rollout undo \
-                                deployment/${FRONTEND_DEPLOYMENT} \
-                                -n ${K8S_NAMESPACE}
-                            """
-
-                            error("Frontend deployment failed. Rolled back successfully.")
-                        }
-
-                        /* ===================================================== */
-                        /* VERIFY BACKEND ROLLOUT                                */
-                        /* ===================================================== */
 
                         try {
 
@@ -491,26 +557,92 @@ pipeline {
 
                             error("Backend deployment failed. Rolled back successfully.")
                         }
+                    }
+                }
+            }
+        }
 
-                        /* ===================================================== */
-                        /* VERIFY KUBERNETES RESOURCES                           */
-                        /* ===================================================== */
+        /* ===================================================== */
+        /* STAGE 16 — DEPLOY FRONTEND                            */
+        /* ===================================================== */
+
+        stage('Deploy Frontend') {
+
+            when {
+
+                expression {
+
+                    env.FRONTEND_CHANGED == "true"
+                }
+            }
+
+            steps {
+
+                dir('k8s-manifests') {
+
+                    script {
+
+                        sh """
+                            sed -i 's|FRONTEND_IMAGE_PLACEHOLDER|${FRONTEND_TAG}|g' frontend-deployment.yaml
+                        """
 
                         sh """
                             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-                            kubectl get pods -n ${K8S_NAMESPACE}
+                            kubectl apply -f frontend-deployment.yaml
 
-                            kubectl get svc -n ${K8S_NAMESPACE}
-
-                            kubectl get deployment -n ${K8S_NAMESPACE}
-
-                            kubectl get hpa -n ${K8S_NAMESPACE}
-
-                            kubectl get pvc -n ${K8S_NAMESPACE}
+                            kubectl apply -f frontend-hpa.yaml
                         """
+
+                        try {
+
+                            sh """
+                                export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+                                kubectl rollout status \
+                                deployment/${FRONTEND_DEPLOYMENT} \
+                                -n ${K8S_NAMESPACE} \
+                                --timeout=180s
+                            """
+
+                        } catch (err) {
+
+                            sh """
+                                export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+                                kubectl rollout undo \
+                                deployment/${FRONTEND_DEPLOYMENT} \
+                                -n ${K8S_NAMESPACE}
+                            """
+
+                            error("Frontend deployment failed. Rolled back successfully.")
+                        }
                     }
                 }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 17 — VERIFY KUBERNETES                          */
+        /* ===================================================== */
+
+        stage('Verify Kubernetes Resources') {
+
+            steps {
+
+                sh """
+                    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+                    kubectl get pods -n ${K8S_NAMESPACE}
+
+                    kubectl get deployment -n ${K8S_NAMESPACE}
+
+                    kubectl get hpa -n ${K8S_NAMESPACE}
+
+                    kubectl get pvc -n ${K8S_NAMESPACE}
+
+                    kubectl get svc -n ${K8S_NAMESPACE}
+                """
             }
         }
     }
@@ -538,6 +670,9 @@ ${JOB_NAME}
 🔹 Build Number:
 ${BUILD_NUMBER}
 
+🏷️ Application Version:
+${APP_VERSION}
+
 🐳 Frontend Versioned Image:
 ${FRONTEND_TAG}
 
@@ -558,7 +693,6 @@ ${SONAR_HOST_URL}/dashboard?id=${SONAR_PROJECT_KEY}
 
 ☸ Kubernetes Namespace:
 ${K8S_NAMESPACE}
-
 
 🚀 Deployment Environment:
 k3s Kubernetes Cluster
@@ -583,7 +717,6 @@ DevSecOps Automation
 Hi Team,
 
 ❌ CI/CD Pipeline FAILED.
-
 
 🔹 Job Name:
 ${JOB_NAME}

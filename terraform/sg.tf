@@ -64,8 +64,8 @@ resource "aws_security_group" "sg" {
 
   ingress {
     description = "MySQL DB traffic"
-    from_port   = 3307
-    to_port     = 3307
+    from_port   = 3306
+    to_port     = 3306
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }

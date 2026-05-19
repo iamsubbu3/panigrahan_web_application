@@ -110,11 +110,11 @@ variable "public_instance_name_1" {
 # 7. S3 BACKEND STORAGE
 ################################################################################
 
-variable "tfstate_backup_s3_bucket_name" {
+variable "backup_and_logs_s3_bucket_name" {
   type = string
 }
 
-variable "tfstate_backup_s3_tag_name" {
+variable "backup_and_logs_s3_tag_name" {
   type = string
 }
 

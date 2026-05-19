@@ -39,6 +39,6 @@ public_instance_name_1             = "Panigrahan-Server"
 ################################################################################
 # 6. S3 BACKEND / STATE STORAGE
 ################################################################################
-tfstate_backup_s3_bucket_name      = "panigrahan-tf-state-bucket"
-tfstate_backup_s3_tag_name         = "panigrahan-tf-state-bucket"
-tfstate_backup_s3_environment_name = "Dev"
+backup_and_logs_s3_bucket_name      = "panigrahan-tf-and-logs-backup"
+backup_and_logs_s3_tag_name         = "panigrahan-tf-and-logs-backup"
+tfstate_backup_s3_environment_name  = "Dev"
