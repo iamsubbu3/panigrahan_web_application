@@ -28,7 +28,7 @@ COPY package*.json ./
 # INSTALL ONLY PRODUCTION DEPENDENCIES
 # =========================================================
 
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # =========================================================
 # COPY SOURCE CODE
