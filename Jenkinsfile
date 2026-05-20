@@ -100,12 +100,19 @@ pipeline {
 
                 script {
 
-                    env.APP_VERSION = sh(
-                        script: '''
-                            git describe --tags --always
-                        ''',
+                    def GIT_TAG = sh(
+                        script: "git tag --points-at HEAD",
                         returnStdout: true
                     ).trim()
+
+                    if (GIT_TAG) {
+
+                        env.APP_VERSION = GIT_TAG
+
+                    } else {
+
+                        env.APP_VERSION = "build-${BUILD_NUMBER}"
+                    }
 
                     env.FRONTEND_TAG = "${DOCKER_USER}/${FRONTEND_IMAGE}:${APP_VERSION}"
 
@@ -136,14 +143,14 @@ pipeline {
 
                     env.FRONTEND_CHANGED = sh(
                         script: """
-                            git diff --name-only HEAD~1 HEAD | grep '^client/' > /dev/null
+                            git diff --name-only HEAD~1 HEAD 2>/dev/null | grep '^client/' > /dev/null
                         """,
                         returnStatus: true
                     ) == 0 ? "true" : "false"
 
                     env.BACKEND_CHANGED = sh(
                         script: """
-                            git diff --name-only HEAD~1 HEAD | grep '^server/' > /dev/null
+                            git diff --name-only HEAD~1 HEAD 2>/dev/null | grep '^server/' > /dev/null
                         """,
                         returnStatus: true
                     ) == 0 ? "true" : "false"
@@ -368,67 +375,67 @@ pipeline {
             }
         }
 
-        // /* ===================================================== */
-        // /* STAGE 10 — TRIVY FRONTEND SCAN                        */
-        // /* ===================================================== */
+        /* ===================================================== */
+        /* STAGE 10 — TRIVY FRONTEND SCAN                        */
+        /* ===================================================== */
 
-        // stage('Trivy Frontend Security Scan') {
+        stage('Trivy Frontend Security Scan') {
 
-        //     when {
+            when {
 
-        //         expression {
+                expression {
 
-        //             env.FRONTEND_CHANGED == "true"
-        //         }
-        //     }
+                    env.FRONTEND_CHANGED == "true"
+                }
+            }
 
-        //     steps {
+            steps {
 
-        //         sh """
-        //             trivy image \
-        //             --severity LOW,MEDIUM,HIGH \
-        //             ${FRONTEND_TAG}
-        //         """
+                sh """
+                    trivy image \
+                    --severity LOW,MEDIUM,HIGH \
+                    ${FRONTEND_TAG}
+                """
 
-        //         sh """
-        //             trivy image \
-        //             --exit-code 1 \
-        //             --severity CRITICAL \
-        //             ${FRONTEND_TAG}
-        //         """
-        //     }
-        // }
+                sh """
+                    trivy image \
+                    --exit-code 1 \
+                    --severity CRITICAL \
+                    ${FRONTEND_TAG}
+                """
+            }
+        }
 
-        // /* ===================================================== */
-        // /* STAGE 11 — TRIVY BACKEND SCAN                         */
-        // /* ===================================================== */
+        /* ===================================================== */
+        /* STAGE 11 — TRIVY BACKEND SCAN                         */
+        /* ===================================================== */
 
-        // stage('Trivy Backend Security Scan') {
+        stage('Trivy Backend Security Scan') {
 
-        //     when {
+            when {
 
-        //         expression {
+                expression {
 
-        //             env.BACKEND_CHANGED == "true"
-        //         }
-        //     }
+                    env.BACKEND_CHANGED == "true"
+                }
+            }
 
-        //     steps {
+            steps {
 
-        //         sh """
-        //             trivy image \
-        //             --severity LOW,MEDIUM,HIGH \
-        //             ${BACKEND_TAG}
-        //         """
+                sh """
+                    trivy image \
+                    --severity LOW,MEDIUM,HIGH \
+                    ${BACKEND_TAG}
+                """
 
-        //         sh """
-        //             trivy image \
-        //             --exit-code 1 \
-        //             --severity CRITICAL \
-        //             ${BACKEND_TAG}
-        //         """
-        //     }
-        // }
+                sh """
+                    trivy image \
+                    --exit-code 1 \
+                    --severity CRITICAL \
+                    ${BACKEND_TAG}
+                """
+            }
+        }
 
         /* ===================================================== */
         /* STAGE 12 — PUSH FRONTEND IMAGE                        */
@@ -514,6 +521,11 @@ pipeline {
 
         stage('Deploy MySQL') {
 
+            when {
+
+                changeset "k8s-manifests/mysql-*"
+            }
+
             steps {
 
                 dir('k8s-manifests') {
@@ -582,6 +594,8 @@ pipeline {
 
                     script {
 
+                        sh "git checkout -- backend-deployment.yaml || true"
+
                         sh """
                             sed -i 's|BACKEND_IMAGE_PLACEHOLDER|${BACKEND_TAG}|g' backend-deployment.yaml
                         """
@@ -647,6 +661,8 @@ pipeline {
                 dir('k8s-manifests') {
 
                     script {
+
+                        sh "git checkout -- frontend-deployment.yaml || true"
 
                         sh """
                             sed -i 's|FRONTEND_IMAGE_PLACEHOLDER|${FRONTEND_TAG}|g' frontend-deployment.yaml
@@ -827,7 +843,7 @@ DevSecOps Automation
                 sh """
                     docker images \
                     --filter "label=project=${FRONTEND_IMAGE}" -q | \
-                    xargs -r docker rmi -f || true
+                    sort -u | xargs -r docker rmi -f || true
                 """
 
                 echo "=================================================="
@@ -839,7 +855,7 @@ DevSecOps Automation
                 sh """
                     docker images \
                     --filter "label=project=${BACKEND_IMAGE}" -q | \
-                    xargs -r docker rmi -f || true
+                    sort -u | xargs -r docker rmi -f || true
                 """
 
                 echo "=================================================="
