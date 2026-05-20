@@ -54,15 +54,10 @@ pipeline {
         NOTIFY_EMAIL = "subramanyam9979@gmail.com"
     }
 
-    triggers {
-
-        pollSCM('H/1 * * * *')
-    }
-
     stages {
 
         /* ===================================================== */
-        /* STAGE 1 — CHECKOUT                                    */
+        /* STAGE 1 — CHECKOUT RELEASE TAG                        */
         /* ===================================================== */
 
         stage('Checkout Release Tag') {
@@ -99,7 +94,7 @@ pipeline {
 
                     echo "=================================================="
 
-                    echo "RELEASE VERSION: ${APP_VERSION}"
+                    echo "🚀 RELEASE VERSION: ${APP_VERSION}"
 
                     echo "=================================================="
                 }
@@ -107,7 +102,7 @@ pipeline {
         }
 
         /* ===================================================== */
-        /* STAGE 2 — VERIFY TAG                                  */
+        /* STAGE 2 — VERIFY RELEASE TAG                          */
         /* ===================================================== */
 
         stage('Verify Release Tag') {
@@ -127,7 +122,100 @@ pipeline {
         }
 
         /* ===================================================== */
-        /* STAGE 3 — BUILD FRONTEND RELEASE IMAGE                */
+        /* STAGE 3 — VERIFY NODEJS                               */
+        /* ===================================================== */
+
+        stage('Verify NodeJS') {
+
+            steps {
+
+                sh '''
+                    node -v
+                    npm -v
+                '''
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 4 — INSTALL FRONTEND DEPENDENCIES               */
+        /* ===================================================== */
+
+        stage('Install Frontend Dependencies') {
+
+            steps {
+
+                dir('client') {
+
+                    script {
+
+                        if (!fileExists('node_modules')) {
+
+                            echo "=================================================="
+
+                            echo "📦 FRONTEND node_modules NOT FOUND"
+
+                            echo "📦 INSTALLING FRONTEND DEPENDENCIES"
+
+                            echo "=================================================="
+
+                            sh 'npm install'
+
+                        } else {
+
+                            echo "=================================================="
+
+                            echo "✅ FRONTEND node_modules ALREADY EXISTS"
+
+                            echo "✅ SKIPPING npm install"
+
+                            echo "=================================================="
+                        }
+                    }
+                }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 5 — INSTALL BACKEND DEPENDENCIES                */
+        /* ===================================================== */
+
+        stage('Install Backend Dependencies') {
+
+            steps {
+
+                dir('server') {
+
+                    script {
+
+                        if (!fileExists('node_modules')) {
+
+                            echo "=================================================="
+
+                            echo "📦 BACKEND node_modules NOT FOUND"
+
+                            echo "📦 INSTALLING BACKEND DEPENDENCIES"
+
+                            echo "=================================================="
+
+                            sh 'npm install'
+
+                        } else {
+
+                            echo "=================================================="
+
+                            echo "✅ BACKEND node_modules ALREADY EXISTS"
+
+                            echo "✅ SKIPPING npm install"
+
+                            echo "=================================================="
+                        }
+                    }
+                }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 6 — BUILD FRONTEND RELEASE IMAGE                */
         /* ===================================================== */
 
         stage('Build Frontend Release Image') {
@@ -150,7 +238,7 @@ pipeline {
         }
 
         /* ===================================================== */
-        /* STAGE 4 — BUILD BACKEND RELEASE IMAGE                 */
+        /* STAGE 7 — BUILD BACKEND RELEASE IMAGE                 */
         /* ===================================================== */
 
         stage('Build Backend Release Image') {
@@ -173,7 +261,7 @@ pipeline {
         }
 
         /* ===================================================== */
-        /* STAGE 5 — PUSH FRONTEND RELEASE IMAGE                 */
+        /* STAGE 8 — PUSH FRONTEND RELEASE IMAGE                 */
         /* ===================================================== */
 
         stage('Push Frontend Release Image') {
@@ -196,7 +284,7 @@ pipeline {
         }
 
         /* ===================================================== */
-        /* STAGE 6 — PUSH BACKEND RELEASE IMAGE                  */
+        /* STAGE 9 — PUSH BACKEND RELEASE IMAGE                  */
         /* ===================================================== */
 
         stage('Push Backend Release Image') {
@@ -219,7 +307,7 @@ pipeline {
         }
 
         /* ===================================================== */
-        /* STAGE 7 — DEPLOY RELEASE                              */
+        /* STAGE 10 — DEPLOY STABLE RELEASE                      */
         /* ===================================================== */
 
         stage('Deploy Stable Release') {
@@ -271,7 +359,7 @@ pipeline {
         }
 
         /* ===================================================== */
-        /* STAGE 8 — VERIFY RELEASE                              */
+        /* STAGE 11 — VERIFY RELEASE DEPLOYMENT                  */
         /* ===================================================== */
 
         stage('Verify Release Deployment') {
@@ -296,7 +384,7 @@ pipeline {
     }
 
     /* ===================================================== */
-    /* POST BUILD ACTIONS                                    */
+    /* POST BUILD ACTIONS                                     */
     /* ===================================================== */
 
     post {
@@ -333,6 +421,8 @@ Release Automation Pipeline
 
                 to: "${NOTIFY_EMAIL}"
             )
+
+            echo "✅ RELEASE SUCCESS EMAIL SENT"
         }
 
         failure {
@@ -360,6 +450,8 @@ Release Automation Pipeline
 
                 to: "${NOTIFY_EMAIL}"
             )
+
+            echo "❌ RELEASE FAILURE EMAIL SENT"
         }
 
         always {
