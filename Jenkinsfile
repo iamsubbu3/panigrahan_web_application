@@ -81,15 +81,28 @@ pipeline {
 
             steps {
 
-                git branch: 'main',
-                    credentialsId: 'github-private-repo',
-                    url: 'https://github.com/iamsubbu3/panigrahan_web_application.git'
+                checkout([
+                    $class: 'GitSCM',
+
+                    branches: [[name: '*/main']],
+
+                    userRemoteConfigs: [[
+                        credentialsId: 'github-private-repo',
+                        url: 'https://github.com/iamsubbu3/panigrahan_web_application.git'
+                    ]],
+
+                    extensions: [[
+                        $class: 'CloneOption',
+                        shallow: false,
+                        noTags: false
+                    ]]
+                ])
 
                 script {
 
                     env.APP_VERSION = sh(
                         script: '''
-                            git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0"
+                            git describe --tags --always
                         ''',
                         returnStdout: true
                     ).trim()
