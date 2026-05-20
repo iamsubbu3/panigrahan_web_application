@@ -98,10 +98,12 @@ pipeline {
                     ]]
                 ])
 
+                sh 'git fetch --tags'
+
                 script {
 
                     def GIT_TAG = sh(
-                        script: "git tag --points-at HEAD",
+                        script: "git describe --tags --exact-match HEAD 2>/dev/null || true",
                         returnStdout: true
                     ).trim()
 
