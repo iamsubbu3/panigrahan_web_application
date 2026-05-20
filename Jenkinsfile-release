@@ -1,0 +1,411 @@
+pipeline {
+
+    agent any
+
+    tools {
+
+        jdk 'jdk21'
+        nodejs 'node20'
+    }
+
+    options {
+
+        timestamps()
+
+        disableConcurrentBuilds()
+
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    environment {
+
+        /* ===================================================== */
+        /* BUILD CONFIGURATION                                   */
+        /* ===================================================== */
+
+        DOCKER_BUILDKIT = "1"
+
+        /* ===================================================== */
+        /* DOCKER SETTINGS                                       */
+        /* ===================================================== */
+
+        DOCKER_USER = "iamsubbu3"
+
+        FRONTEND_IMAGE = "panigrahan-frontend"
+
+        BACKEND_IMAGE  = "panigrahan-backend"
+
+        REGISTRY_CRED = "docker-credentials"
+
+        /* ===================================================== */
+        /* KUBERNETES SETTINGS                                   */
+        /* ===================================================== */
+
+        K8S_NAMESPACE = "panigrahan"
+
+        FRONTEND_DEPLOYMENT = "frontend"
+
+        BACKEND_DEPLOYMENT  = "backend"
+
+        /* ===================================================== */
+        /* EMAIL NOTIFICATIONS                                   */
+        /* ===================================================== */
+
+        NOTIFY_EMAIL = "subramanyam9979@gmail.com"
+    }
+
+    triggers {
+
+        githubPush()
+    }
+
+    stages {
+
+        /* ===================================================== */
+        /* STAGE 1 — CHECKOUT                                    */
+        /* ===================================================== */
+
+        stage('Checkout Release Tag') {
+
+            steps {
+
+                checkout([
+                    $class: 'GitSCM',
+
+                    branches: [[name: 'refs/tags/*']],
+
+                    userRemoteConfigs: [[
+                        credentialsId: 'github-private-repo',
+                        url: 'https://github.com/iamsubbu3/panigrahan_web_application.git'
+                    ]],
+
+                    extensions: [[
+                        $class: 'CloneOption',
+                        shallow: false,
+                        noTags: false
+                    ]]
+                ])
+
+                script {
+
+                    env.APP_VERSION = sh(
+                        script: "git describe --tags --exact-match HEAD",
+                        returnStdout: true
+                    ).trim()
+
+                    env.FRONTEND_TAG = "${DOCKER_USER}/${FRONTEND_IMAGE}:${APP_VERSION}"
+
+                    env.BACKEND_TAG = "${DOCKER_USER}/${BACKEND_IMAGE}:${APP_VERSION}"
+
+                    echo "=================================================="
+
+                    echo "RELEASE VERSION: ${APP_VERSION}"
+
+                    echo "=================================================="
+                }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 2 — VERIFY TAG                                  */
+        /* ===================================================== */
+
+        stage('Verify Release Tag') {
+
+            steps {
+
+                sh """
+                    echo "=================================================="
+
+                    echo "VERIFYING RELEASE TAG"
+
+                    git tag --points-at HEAD
+
+                    echo "=================================================="
+                """
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 3 — BUILD FRONTEND RELEASE IMAGE                */
+        /* ===================================================== */
+
+        stage('Build Frontend Release Image') {
+
+            steps {
+
+                dir('client') {
+
+                    script {
+
+                        docker.build(
+                            FRONTEND_TAG,
+                            "--label release_version=${APP_VERSION} " +
+                            "--label git_commit=${GIT_COMMIT} " +
+                            "--label project=${FRONTEND_IMAGE} ."
+                        )
+                    }
+                }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 4 — BUILD BACKEND RELEASE IMAGE                 */
+        /* ===================================================== */
+
+        stage('Build Backend Release Image') {
+
+            steps {
+
+                dir('server') {
+
+                    script {
+
+                        docker.build(
+                            BACKEND_TAG,
+                            "--label release_version=${APP_VERSION} " +
+                            "--label git_commit=${GIT_COMMIT} " +
+                            "--label project=${BACKEND_IMAGE} ."
+                        )
+                    }
+                }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 5 — PUSH FRONTEND RELEASE IMAGE                 */
+        /* ===================================================== */
+
+        stage('Push Frontend Release Image') {
+
+            steps {
+
+                script {
+
+                    withDockerRegistry(
+                        [
+                            credentialsId: REGISTRY_CRED,
+                            url: 'https://index.docker.io/v1/'
+                        ]
+                    ) {
+
+                        sh "docker push ${FRONTEND_TAG}"
+                    }
+                }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 6 — PUSH BACKEND RELEASE IMAGE                  */
+        /* ===================================================== */
+
+        stage('Push Backend Release Image') {
+
+            steps {
+
+                script {
+
+                    withDockerRegistry(
+                        [
+                            credentialsId: REGISTRY_CRED,
+                            url: 'https://index.docker.io/v1/'
+                        ]
+                    ) {
+
+                        sh "docker push ${BACKEND_TAG}"
+                    }
+                }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 7 — DEPLOY RELEASE                              */
+        /* ===================================================== */
+
+        stage('Deploy Stable Release') {
+
+            steps {
+
+                dir('k8s-manifests') {
+
+                    script {
+
+                        sh "git checkout -- frontend-deployment.yaml || true"
+
+                        sh "git checkout -- backend-deployment.yaml || true"
+
+                        sh """
+                            sed -i 's|FRONTEND_IMAGE_PLACEHOLDER|${FRONTEND_TAG}|g' frontend-deployment.yaml
+                        """
+
+                        sh """
+                            sed -i 's|BACKEND_IMAGE_PLACEHOLDER|${BACKEND_TAG}|g' backend-deployment.yaml
+                        """
+
+                        sh """
+                            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+                            kubectl apply -f backend-configmap.yaml
+
+                            kubectl apply -f backend-secret.yaml
+
+                            kubectl apply -f backend-deployment.yaml
+
+                            kubectl apply -f backend-hpa.yaml
+
+                            kubectl apply -f frontend-deployment.yaml
+
+                            kubectl apply -f frontend-hpa.yaml
+                        """
+
+                        sh """
+                            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+                            kubectl rollout status deployment/${FRONTEND_DEPLOYMENT} -n ${K8S_NAMESPACE} --timeout=180s
+
+                            kubectl rollout status deployment/${BACKEND_DEPLOYMENT} -n ${K8S_NAMESPACE} --timeout=180s
+                        """
+                    }
+                }
+            }
+        }
+
+        /* ===================================================== */
+        /* STAGE 8 — VERIFY RELEASE                              */
+        /* ===================================================== */
+
+        stage('Verify Release Deployment') {
+
+            steps {
+
+                sh """
+                    export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+                    kubectl get pods -n ${K8S_NAMESPACE}
+
+                    kubectl get deployment -n ${K8S_NAMESPACE}
+
+                    kubectl get hpa -n ${K8S_NAMESPACE}
+
+                    kubectl get pvc -n ${K8S_NAMESPACE}
+
+                    kubectl get svc -n ${K8S_NAMESPACE}
+                """
+            }
+        }
+    }
+
+    /* ===================================================== */
+    /* POST BUILD ACTIONS                                    */
+    /* ===================================================== */
+
+    post {
+
+        success {
+
+            emailext(
+
+                subject: "🚀 RELEASE SUCCESS | ${APP_VERSION}",
+
+                body: """
+Hi Team,
+
+✅ Stable Release Deployment Successful.
+
+🏷️ Release Version:
+${APP_VERSION}
+
+🐳 Frontend Image:
+${FRONTEND_TAG}
+
+🐳 Backend Image:
+${BACKEND_TAG}
+
+☸ Kubernetes Namespace:
+${K8S_NAMESPACE}
+
+🔗 Jenkins Build URL:
+${BUILD_URL}
+
+Regards,
+Release Automation Pipeline
+""",
+
+                to: "${NOTIFY_EMAIL}"
+            )
+        }
+
+        failure {
+
+            emailext(
+
+                subject: "❌ RELEASE FAILED | ${APP_VERSION}",
+
+                body: """
+Hi Team,
+
+❌ Stable Release Deployment Failed.
+
+🏷️ Release Version:
+${APP_VERSION}
+
+🔗 Jenkins Console:
+${BUILD_URL}console
+
+Please review the logs.
+
+Regards,
+Release Automation Pipeline
+""",
+
+                to: "${NOTIFY_EMAIL}"
+            )
+        }
+
+        always {
+
+            script {
+
+                echo "=================================================="
+
+                echo "🧹 CLEANING FRONTEND DOCKER IMAGES"
+
+                echo "=================================================="
+
+                sh """
+                    docker images \
+                    --filter "label=project=${FRONTEND_IMAGE}" -q | \
+                    sort -u | xargs -r docker rmi -f || true
+                """
+
+                echo "=================================================="
+
+                echo "🧹 CLEANING BACKEND DOCKER IMAGES"
+
+                echo "=================================================="
+
+                sh """
+                    docker images \
+                    --filter "label=project=${BACKEND_IMAGE}" -q | \
+                    sort -u | xargs -r docker rmi -f || true
+                """
+
+                echo "=================================================="
+
+                echo "🧹 CLEANING UNUSED DOCKER IMAGES"
+
+                echo "=================================================="
+
+                sh "docker image prune -f || true"
+
+                sh "docker builder prune -f || true"
+
+                echo "=================================================="
+
+                echo "✅ CLEANUP COMPLETED"
+
+                echo "=================================================="
+            }
+        }
+    }
+}
