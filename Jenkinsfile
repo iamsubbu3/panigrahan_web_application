@@ -69,6 +69,7 @@ pipeline {
     triggers {
 
         githubPush()
+        pollSCM('H/5 * * * *')
     }
 
     stages {
@@ -97,8 +98,6 @@ pipeline {
                         noTags: false
                     ]]
                 ])
-
-                sh 'git fetch --tags'
 
                 script {
 
