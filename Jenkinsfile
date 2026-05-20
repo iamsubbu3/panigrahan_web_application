@@ -510,8 +510,6 @@ pipeline {
                         sh """
                             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-                            kubectl apply -f mysql-ebs-pvc.yaml
-
                             kubectl apply -f mysql-headless-service.yaml
 
                             kubectl apply -f mysql-secret.yaml
