@@ -6,7 +6,7 @@
 # terraform {
 #   backend "s3" {
 #     bucket  = "panigrahan-tf-and-logs-backup"
-#     key     = "Dev/terraform.tfstate"
+#     key     = "terraform-state/terraform.tfstate"
 #     region  = "us-east-1"
 #     encrypt = true
     

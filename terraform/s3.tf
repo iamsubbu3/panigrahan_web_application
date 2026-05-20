@@ -15,14 +15,113 @@ resource "aws_s3_bucket" "s3" {
   }
 }
 
-# ################################################################################
-# # 2. BUCKET SECURITY & SAFETY
-# # Enables versioning so you can recover old state files if the current one breaks.
-# ################################################################################
+################################################################################
+# 2. BUCKET SECURITY & SAFETY
+# Enables versioning so you can recover old state files if the current one breaks.
+################################################################################
 
-# resource "aws_s3_bucket_versioning" "s3_versioning" {
-#   bucket = aws_s3_bucket.s3.id
-#   versioning_configuration {
-#     status = "Enabled"
-#   }
-# }
+/* VERSIONING */
+
+resource "aws_s3_bucket_versioning" "s3_versioning" {
+  bucket = aws_s3_bucket.s3.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+/* BLOCK PUBLIC ACCESS */
+
+resource "aws_s3_bucket_public_access_block" "s3_block" {
+
+  bucket = aws_s3_bucket.s3.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+/* SERVER SIDE ENCRYPTION */
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "s3_encryption" {
+
+  bucket = aws_s3_bucket.s3.id
+
+  rule {
+
+    apply_server_side_encryption_by_default {
+
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+/* LIFECYCLE POLICY */
+
+resource "aws_s3_bucket_lifecycle_configuration" "s3_lifecycle" {
+
+  bucket = aws_s3_bucket.s3.id
+
+  ##################################################
+  # PRODUCTION LOGS
+  ##################################################
+
+  rule {
+
+    id     = "production-log-cleanup"
+
+    status = "Enabled"
+
+    filter {
+
+      prefix = "production-logs/"
+    }
+
+    expiration {
+
+      days = 30
+    }
+  }
+
+  ##################################################
+  # JENKINS LOGS
+  ##################################################
+
+  rule {
+
+    id     = "jenkins-log-cleanup"
+
+    status = "Enabled"
+
+    filter {
+
+      prefix = "jenkins-logs/"
+    }
+
+    expiration {
+
+      days = 15
+    }
+  }
+
+  ##################################################
+  # JENKINS BACKUPS
+  ##################################################
+
+  rule {
+
+    id     = "jenkins-backup-cleanup"
+
+    status = "Enabled"
+
+    filter {
+
+      prefix = "jenkins-backups/"
+    }
+
+    expiration {
+
+      days = 90
+    }
+  }
+}
