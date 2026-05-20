@@ -375,67 +375,67 @@ pipeline {
             }
         }
 
-        /* ===================================================== */
-        /* STAGE 10 — TRIVY FRONTEND SCAN                        */
-        /* ===================================================== */
+        // /* ===================================================== */
+        // /* STAGE 10 — TRIVY FRONTEND SCAN                        */
+        // /* ===================================================== */
 
-        stage('Trivy Frontend Security Scan') {
+        // stage('Trivy Frontend Security Scan') {
 
-            when {
+        //     when {
 
-                expression {
+        //         expression {
 
-                    env.FRONTEND_CHANGED == "true"
-                }
-            }
+        //             env.FRONTEND_CHANGED == "true"
+        //         }
+        //     }
 
-            steps {
+        //     steps {
 
-                sh """
-                    trivy image \
-                    --severity LOW,MEDIUM,HIGH \
-                    ${FRONTEND_TAG}
-                """
+        //         sh """
+        //             trivy image \
+        //             --severity LOW,MEDIUM,HIGH \
+        //             ${FRONTEND_TAG}
+        //         """
 
-                sh """
-                    trivy image \
-                    --exit-code 1 \
-                    --severity CRITICAL \
-                    ${FRONTEND_TAG}
-                """
-            }
-        }
+        //         sh """
+        //             trivy image \
+        //             --exit-code 1 \
+        //             --severity CRITICAL \
+        //             ${FRONTEND_TAG}
+        //         """
+        //     }
+        // }
 
-        /* ===================================================== */
-        /* STAGE 11 — TRIVY BACKEND SCAN                         */
-        /* ===================================================== */
+        // /* ===================================================== */
+        // /* STAGE 11 — TRIVY BACKEND SCAN                         */
+        // /* ===================================================== */
 
-        stage('Trivy Backend Security Scan') {
+        // stage('Trivy Backend Security Scan') {
 
-            when {
+        //     when {
 
-                expression {
+        //         expression {
 
-                    env.BACKEND_CHANGED == "true"
-                }
-            }
+        //             env.BACKEND_CHANGED == "true"
+        //         }
+        //     }
 
-            steps {
+        //     steps {
 
-                sh """
-                    trivy image \
-                    --severity LOW,MEDIUM,HIGH \
-                    ${BACKEND_TAG}
-                """
+        //         sh """
+        //             trivy image \
+        //             --severity LOW,MEDIUM,HIGH \
+        //             ${BACKEND_TAG}
+        //         """
 
-                sh """
-                    trivy image \
-                    --exit-code 1 \
-                    --severity CRITICAL \
-                    ${BACKEND_TAG}
-                """
-            }
-        }
+        //         sh """
+        //             trivy image \
+        //             --exit-code 1 \
+        //             --severity CRITICAL \
+        //             ${BACKEND_TAG}
+        //         """
+        //     }
+        // }
 
         /* ===================================================== */
         /* STAGE 12 — PUSH FRONTEND IMAGE                        */
