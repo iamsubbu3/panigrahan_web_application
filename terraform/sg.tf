@@ -79,6 +79,22 @@ resource "aws_security_group" "sg" {
   }
 
   ingress {
+    description = "Prometheus traffic"
+    from_port   = 30090
+    to_port     = 30090
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Alertmanager traffic"
+    from_port   = 30093
+    to_port     = 30093
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
     description = "Panigrahan NodePort Frontend Traffic Port"
     from_port   = 30080
     to_port     = 30080

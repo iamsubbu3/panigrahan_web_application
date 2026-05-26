@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+
+metadata:
+  name: blackbox-monitor
+  namespace: monitoring
+  labels:
+    release: monitoring
+
+spec:
+  endpoints:
+  - interval: 30s
+    path: /probe
+    params:
+      module:
+      - http_2xx
+      target:
+      - http://13.222.94.130:8080
+    port: http
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus-blackbox-exporter
