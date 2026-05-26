@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../../api/apiClient";
 import { loadFormEnums } from "../../logic/enumStore";
+import { BASE_URL, COMPANY } from "../../api/apiClient";
 
 const CITY_QUESTION_ID = 5;
 
@@ -74,7 +75,7 @@ export default function ProfilePreference() {
   const [profile, setProfile] = useState("");
   const navigate = useNavigate();
 
-  const [pref, setPref] = useState({ agegap: "",  minincome: "", minnetworth: "" });
+  const [pref, setPref] = useState({ agegap: null,  minincome: null, minnetworth: null });
   const [stars,         setStars]         = useState([]);
   const [prefquestions, setPrefquestions] = useState([]);
   const [prefanswers,   setPrefanswers]   = useState([]);
@@ -195,7 +196,7 @@ export default function ProfilePreference() {
           boxShadow: "var(--shadow-xs)", animation: "fadeUp .4s var(--smooth) both"
         }}>
           <img
-            src={profile.profilePicture?.file_url ? `http://localhost:8080${profile.profilePicture.file_url}` : "/placeholder-profile.png"}
+            src={profile.profilePicture?.file_url ? `${BASE_URL}${profile.profilePicture.file_url}` : "/placeholder-profile.png"}
             style={{ width: "60px", height: "60px", borderRadius: "var(--r-sm)", objectFit: "cover", border: "2px solid var(--amber-ring)" }}
           />
           <div>

@@ -5,7 +5,7 @@ const { Attachment } = require("../models");
 
 exports.create = async (req, res) => {
   try {
-    const result = await profileService.create(req.body, req.user.id);
+    const result = await profileService.create(req.body, req.user.id, req.user.orgid);
 
     //  handle validation response
     if (result?.field) {
@@ -26,8 +26,9 @@ exports.list = async (req, res) => {
 
 exports.changests = async (req, res) => {
   try {
-    const { sts } = req.body;
-    const profile = await profileService.update(req.params.id, { profilests: sts }, req.user.id);
+    const { sts, inacreason } = req.body;
+
+    const profile = await profileService.update(req.params.id, { profilests: sts, inacreason: inacreason }, req.user.id);
     if (!profile) return res.sendStatus(404);
     res.json(profile);
   } catch (err) {
@@ -78,7 +79,7 @@ exports.search = async (req, res) => {
   const filters     = { ...req.body, orgid: req.user.orgid };
   const includePlan = req.query.includeplan === "true";
   const page        = Math.max(1, parseInt(req.query.page)  || 1);
-  const limit       = Math.min(50, parseInt(req.query.limit) || 10);
+  const limit       = Math.min(50, parseInt(req.query.limit) || 14);
   const result      = await profileService.searchWithMatchCount(filters, includePlan, page, limit);
   res.json(result);
 };

@@ -2,6 +2,16 @@ const { ProfileInteraction, ProfileTask, Profile, Sequelize } = require("../mode
 const { touchLastInteraction } = require("./profile.service");
 const { Op } = Sequelize;
 
+const resolveProfileId = async (value) => {
+  if (!value) return value;
+  if (/^\d+$/.test(String(value))) return value;
+  const profile = await Profile.findOne({
+    where: { client_id: value },
+    attributes: ["id"]
+  });
+  return profile ? profile.id : value;
+};
+
 /* ---------------- INTERACTIONS ---------------- */
 
 exports.createInteraction = async (data) => {

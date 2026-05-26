@@ -3,7 +3,7 @@ import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import InteractionPane from "../components/dashboard/InteractionPane";
 import TaskPane from "../components/dashboard/TaskPane";
-import "../styles.css";
+import "/work/panigrahan/client/src/styles.css";
 
 export default function AppLayout() {
   const navigate = useNavigate();

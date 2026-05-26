@@ -1,6 +1,7 @@
 const { Profile, ProfileMatch, ProfilePlan, Attachment, gothras, Sequelize, User } = require("../models");
 const bcrypt = require("bcrypt");
 const { Op } = Sequelize;
+const sanitize = (val) => String(val).replace(/'/g, "''");
 
 /* ── Build filter WHERE from common filters ── */
 const buildWhere = (filters) => {
@@ -13,24 +14,43 @@ const buildWhere = (filters) => {
     { firstname: { [Op.like]: `%${filters.name}%` } },
     { lastname:  { [Op.like]: `%${filters.name}%` } }
   ];
-  if (filters.gender)   where.gender     = filters.gender;
+  if (filters.gender)   where.gender   = filters.gender;
+  if (filters.district) where.birthdist = filters.district;
+
+  // ── Address filters (city, state, country) — all must match same address row ──
+  const addressConditions = [];
+
   if (filters.city) {
+    addressConditions.push(`a.city LIKE '%${sanitize(filters.city)}%'`);
+  }
+  if (filters.country?.length > 0) {
+    const hasAbroad = filters.country.includes("all");
+    const specificCountries = filters.country
+      .filter(c => c !== "all")
+      .map(c => c.trim());
+
+    if (hasAbroad && specificCountries.length === 0) {
+
+      addressConditions.push(`LOWER(a.country) != 'india'`);
+    } else if (!hasAbroad && specificCountries.length > 0) {
+
+      const safe = specificCountries.map(c => `'${sanitize(c.toLowerCase())}'`).join(",");
+      addressConditions.push(`LOWER(a.country) IN (${safe})`);
+    } else if (hasAbroad && specificCountries.length > 0) {
+
+      const safe = specificCountries.map(c => `'${sanitize(c.toLowerCase())}'`).join(",");
+      addressConditions.push(`(LOWER(a.country) != 'india' OR LOWER(a.country) IN (${safe}))`);
+    }
+  }
+
+  if (addressConditions.length > 0) {
     where[Op.and] = where[Op.and] || [];
     where[Op.and].push(Sequelize.literal(`EXISTS (
       SELECT 1 FROM address a
-      WHERE a.relationtype = 'profile' AND a.relationid = Profile.id
-      AND a.city LIKE '%${filters.city}%'
+      WHERE a.id = Profile.current_address_id
+        AND ${addressConditions.join(" AND ")}
     )`));
   }
-  if (filters.state) {
-    where[Op.and] = where[Op.and] || [];
-    where[Op.and].push(Sequelize.literal(`EXISTS (
-      SELECT 1 FROM address a
-      WHERE a.relationtype = 'profile' AND a.relationid = Profile.id
-      AND a.state LIKE '%${filters.state}%'
-    )`));
-  }
-  if (filters.district) where.birthdist  = filters.district;
 
   if (filters.birthstar?.length > 0) {
     where.birthstar = { [Op.in]: filters.birthstar.map(v => parseInt(v)) };
@@ -44,27 +64,17 @@ const buildWhere = (filters) => {
     where.birthdate = dob;
   }
 
-  let whereHeightClause = {};
-  if (filters.minHeight && Number(filters.minHeight) > 0) {
-    whereHeightClause[Op.gte] = filters.minHeight;
-  }
-  if (filters.maxHeight && Number(filters.maxHeight) > 0) {
-    whereHeightClause[Op.lte] = filters.maxHeight;
-  }
-
-  if ((Number(filters.maxHeight) > 0) || Number(filters.minHeight) > 0) {
-    where.height = whereHeightClause;
+  if (filters.minHeight && filters.maxHeight) {
+    where.height = { [Op.between]: [filters.minHeight, filters.maxHeight] };
   }
 
   if (filters.income && Number(filters.income) > 0) {
-    where.income = { [Op.gte]: filters.income }
+    where.income = { [Op.gte]: filters.income };
   }
 
   if (filters.networth && Number(filters.networth) > 0) {
-    where.networth = { [Op.gte]: filters.networth }
+    where.networth = { [Op.gte]: filters.networth };
   }
-
-
 
   if (filters.swagothra) {
     where.swagothra = filters.swagothra;
@@ -73,11 +83,12 @@ const buildWhere = (filters) => {
   //occupation and suboccupation filters 
   if (filters.occtype?.length > 0) {
     where[Op.and] = where[Op.and] || [];
+    const occtypeIds = filters.occtype.map(v => parseInt(v)).filter(v => !isNaN(v)).join(",");
     where[Op.and].push(Sequelize.literal(`EXISTS (
       SELECT 1 FROM occupation occ
       WHERE occ.parentid = Profile.id
         AND occ.parenttype = 'profile'
-        AND occ.occtype IN (${filters.occtype.map(v => parseInt(v)).join(",")})
+        AND occ.occtype IN (${occtypeIds})
     )`));
   }
 
@@ -154,11 +165,11 @@ const buildWhere = (filters) => {
 
   // status: "" or undefined = active only, 0 = all, 1 = active, 2 = inactive
   if (filters.status === 0 || filters.status === "0") {
-    // show all — no filter
+    // show all
   } else if (filters.status) {
     where.profilests = filters.status;
   } else {
-    where.profilests = 1; // default active only
+    where.profilests = 1;
   }
 
   return where;
@@ -185,7 +196,7 @@ const attachPlans = async (profiles) => {
   });
 };
 
-exports.create = async (data, userId) => {
+exports.create = async (data, userId, orgid) => {
 
   if (!data.client_id || data.client_id.trim() === "") {
     return {
@@ -197,7 +208,7 @@ exports.create = async (data, userId) => {
   //  FIRST find existing
   const existing = await Profile.findOne({
     where: {
-      orgid: data.orgid,
+      orgid: orgid,
       client_id: data.client_id
     }
   });
@@ -213,6 +224,7 @@ exports.create = async (data, userId) => {
   return Profile.create({
     ...data,
     createdby: userId,
+    orgid: orgid,
     last_interaction: new Date()
   });
 };
@@ -315,8 +327,7 @@ exports.setProfilePicture = async (profileId, attachmentId) => {
 };
 
 /* Main search — all profiles visible, paginated, optional plan filters */
-exports.searchWithMatchCount = async (filters, includePlan = false, page = 1, limit = 10) => {
-  // console.log(filters);
+exports.searchWithMatchCount = async (filters, includePlan = false, page = 1, limit = 14) => {
   const where  = buildWhere(filters);
   const offset = (page - 1) * limit;
 
@@ -325,7 +336,7 @@ exports.searchWithMatchCount = async (filters, includePlan = false, page = 1, li
     where[Sequelize.Op.and].push(Sequelize.literal(`EXISTS (
       SELECT 1 FROM profileplans pp
       WHERE pp.profileid = Profile.id
-        AND pp.subscription_name = '${filters.subscriptionName}'
+        AND pp.subscription_name = '${sanitize(filters.subscriptionName)}'
         AND pp.id = (SELECT MAX(id) FROM profileplans pp2 WHERE pp2.profileid = Profile.id)
     )`));
   }
@@ -346,7 +357,7 @@ exports.searchWithMatchCount = async (filters, includePlan = false, page = 1, li
         SELECT payment_status FROM profileplans pp
         WHERE pp.profileid = Profile.id
         ORDER BY pp.id DESC LIMIT 1
-      ) = '${filters.paymentStatus}'`));
+      ) = '${sanitize(filters.paymentStatus)}'`));
     }
   }
 
@@ -361,7 +372,7 @@ exports.searchWithMatchCount = async (filters, includePlan = false, page = 1, li
       ]
     },
     include: [
-      { model: ProfileMatch, attributes: [], required: false },
+      { model: ProfileMatch, attributes: [], where : { status : 1 }, required: false },
       { model: Attachment, as: "profilePicture", attributes: ["file_url"], required: false }
     ],
     order: [["createdon", "DESC"]],
@@ -371,20 +382,16 @@ exports.searchWithMatchCount = async (filters, includePlan = false, page = 1, li
     subQuery: false
   });
 
-  exports.changests = async (id, sts) => {
-  const profile = await Profile.findByPk(id);
-  if (!profile) return null;
-
-  await profile.update({
-    profilests: sts   // 1 = ACTIVE
-  });
-
-  return profile;
-}
-
   const data = includePlan ? await attachPlans(profiles) : profiles;
 
   return { data, total, page, pages: Math.ceil(total / limit) };
+};
+
+exports.changests = async (id, sts) => {
+  const profile = await Profile.findByPk(id);
+  if (!profile) return null;
+  await profile.update({ profilests: sts });
+  return profile;
 };
 
 exports.touchLastInteraction = async (profileId) => {

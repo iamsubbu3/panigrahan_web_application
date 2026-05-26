@@ -66,12 +66,12 @@ export default function FamilyForm({ value, enums, onSave, onCancel }) {
     value || {
       firstname: "",
       lastname: "",
-      relationtype: "",
+      relationtype: null,
       surname: "",
-      occtype: "",
-      maritalsts: "",
-      livingstatus: "",
-      gender: "",
+      occtype: null,
+      maritalsts: null,
+      livingstatus: null,
+      gender: null,
       cellphone: "",
       homephone: "",
       otherphone: "",
@@ -162,12 +162,12 @@ export default function FamilyForm({ value, enums, onSave, onCancel }) {
           />
         </FormField>
 
-        <FormField label="Surname">
+        <FormField label="Family Name">
           <StyledInput
             name="surname"
             value={form.surname}
             onChange={onChange}
-            placeholder="Surname"
+            placeholder="Family name"
           />
         </FormField>
 

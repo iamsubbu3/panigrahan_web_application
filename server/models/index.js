@@ -36,7 +36,7 @@ db.ProfileTask = require("./profiletask.model")(sequelize, Sequelize.DataTypes);
 db.ProfilePlan = require("./profilePlan.model")(sequelize, Sequelize.DataTypes);
 
 
-db.gothras = require("./gothras.model")(sequelize, Sequelize);
+db.gothras = require("./gothras.model")(sequelize, Sequelize.DataTypes);
 
 
 /* ================= EXISTING ASSOCIATIONS ================= */
@@ -48,8 +48,8 @@ db.Profile.hasMany(db.ProfileStarPreference, { foreignKey: "profileid" });
 db.Profile.hasMany(db.Occupation, { foreignKey: "parentid", as: "occupations", scope: {parenttype: "profile"} });
 db.Profile.hasMany(db.Education, { foreignKey: "profile_id", as: "educations" });
 
-db.gothras.belongsTo(db.Profile, { as: "swagothranm", foreignKey: "swagothra"});
-db.gothras.belongsTo(db.Profile, { as: "mamagothranm", foreignKey: "mamagothra"});
+//db.gothras.belongsTo(db.Profile, { as: "swagothranm", foreignKey: "swagothra"});
+//db.gothras.belongsTo(db.Profile, { as: "mamagothranm", foreignKey: "mamagothra"});
 
 db.Occupation.belongsTo(db.Profile, { foreignKey: "parentid", as: "profile", scope: {parenttype: "profile"} });
 

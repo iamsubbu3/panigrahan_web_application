@@ -7,7 +7,6 @@ module.exports = (sequelize, DataTypes) => {
         primaryKey: true,
         autoIncrement: true
       },
-
       client_id: {
         type: DataTypes.STRING(50),
         allowNull: true,
@@ -16,6 +15,7 @@ module.exports = (sequelize, DataTypes) => {
                   }
       },
 
+      //client_id: DataTypes.STRING(50),
       firstname: DataTypes.STRING(100),
       lastname: DataTypes.STRING(100),
       middlei: DataTypes.STRING(50),
@@ -30,7 +30,7 @@ module.exports = (sequelize, DataTypes) => {
 
       birthdate: DataTypes.DATEONLY,
       birthtime: DataTypes.TIME,
-      birthstar: DataTypes.STRING(50),
+      birthstar: DataTypes.TINYINT.UNSIGNED,
       starpada: DataTypes.TINYINT.UNSIGNED,
       birthrasi: DataTypes.STRING(50),
       birthplace: DataTypes.STRING(100),
@@ -66,10 +66,10 @@ module.exports = (sequelize, DataTypes) => {
       billingsts: DataTypes.TINYINT.UNSIGNED,
       maritalsts: DataTypes.TINYINT.UNSIGNED,
       childrencount: DataTypes.TINYINT.UNSIGNED,
-      phonenumber: DataTypes.STRING(20),
+      phonenumber: DataTypes.STRING(15),
 
-      income: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
-      networth: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+      income: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
+      networth: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
       assetdets: DataTypes.TEXT,
       createdby: DataTypes.INTEGER,
       updatedby: DataTypes.INTEGER,

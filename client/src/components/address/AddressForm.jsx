@@ -13,11 +13,11 @@ const PLACEHOLDERS = {
 const FIELDS = ["addone", "addtwo", "city", "district", "state", "country", "zipcode"];
 
 const VALIDATORS = {
-  city:     { pattern: /^[a-zA-Z\s]*$/, message: "Only letters allowed" },
-  district: { pattern: /^[a-zA-Z\s]*$/, message: "Only letters allowed" },
-  state:    { pattern: /^[a-zA-Z\s]*$/, message: "Only letters allowed" },
-  country:  { pattern: /^[a-zA-Z\s]*$/, message: "Only letters allowed" },
-  zipcode:  { pattern: /^[0-9]*$/,      message: "Only numbers allowed" }
+  city:     { pattern: /^[a-zA-Z0-9\s]*$/, message: "Only letters and numbers allowed" },
+  district: { pattern: /^[a-zA-Z0-9\s]*$/, message: "Only letters and numbers allowed" },
+  state:    { pattern: /^[a-zA-Z0-9\s]*$/, message: "Only letters and numbers allowed" },
+  country:  { pattern: /^[a-zA-Z0-9\s]*$/, message: "Only letters and numbers allowed" },
+  zipcode:  { pattern: /^[a-zA-Z0-9\-\s]*$/,   message: "Only letters and numbers allowed" }
 };
 
 const labelStyle = {
@@ -26,12 +26,21 @@ const labelStyle = {
   color: "var(--ink-3)", marginBottom: "5px"
 };
 
+const CAPITALIZE_FIELDS = ["city", "district", "state", "country"];
+
+const normalizeValue = (field, value) => {
+  if (!value || !CAPITALIZE_FIELDS.includes(field)) return value;
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase()); 
+};
+
 const validate = (field, value) => {
   if (!value) return null;
   const rule = VALIDATORS[field];
   return rule ? (rule.pattern.test(value) ? null : rule.message) : null;
 };
-
 const validateAll = (formData) => {
   const errors = {};
   FIELDS.forEach(field => {
@@ -245,7 +254,12 @@ export default function AddressForm({ value, onSave, onCancel, hasFamilyMember, 
 
   const onEditBlur = e => {
     const { name, value: val } = e.target;
-    const err = validate(name, val);
+    const normalized = normalizeValue(name, val);
+    if (normalized !== val) {
+      setForm(prev => ({ ...prev, [name]: normalized }));
+      if (isMerged && keepMerged) setPermForm(prev => ({ ...prev, [name]: normalized }));
+    }
+    const err = validate(name, normalized);
     setEditErrors(prev => ({ ...prev, [name]: err }));
     e.target.style.borderColor = err ? "var(--danger)" : "var(--border)";
     e.target.style.boxShadow   = "none";
@@ -253,7 +267,9 @@ export default function AddressForm({ value, onSave, onCancel, hasFamilyMember, 
 
   const onPermBlur = e => {
     const { name, value: val } = e.target;
-    const err = validate(name, val);
+    const normalized = normalizeValue(name, val);
+    if (normalized !== val) setPermForm(prev => ({ ...prev, [name]: normalized }));
+    const err = validate(name, normalized);
     setPermErrors(prev => ({ ...prev, [name]: err }));
     e.target.style.borderColor = err ? "var(--danger)" : "var(--border)";
     e.target.style.boxShadow   = "none";
@@ -269,8 +285,16 @@ export default function AddressForm({ value, onSave, onCancel, hasFamilyMember, 
       if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
     },
     onBlur: e => {
-      const field = e.target.name.replace(`${prefix}_`, "");
-      const err   = validate(field, e.target.value);
+      const field      = e.target.name.replace(`${prefix}_`, "");
+      const normalized = normalizeValue(field, e.target.value);
+      if (normalized !== e.target.value) {
+        setter(prev => {
+          const updated = { ...prev, [field]: normalized };
+          if (prefix === "current" && sameAsCurrent) setPermanentForm(updated);
+          return updated;
+        });
+      }
+      const err = validate(field, normalized);
       setErrors(prev => ({ ...prev, [field]: err }));
       e.target.style.borderColor = err ? "var(--danger)" : "var(--border)";
       e.target.style.boxShadow   = "none";

@@ -1,4 +1,16 @@
 const API_BASE = "http://13.222.94.130:30081/api";
+export const BASE_URL = "http://13.222.94.130:30081";
+
+export const COMPANY = {
+  name:     "Arjunaiah Venkatesh Matrimony",
+  subtitle: "Aryavysya Varanveshna Kendra",
+  city:     "Bengaluru · 560002",
+  cta:      "Contact us for more details",
+  address:  "78/3, Sanjeevappa Lane, Avenue Road Cross, Avenue Rd,",
+  address2: "opp. Rice Memorial Church, Bengaluru, Karnataka 560002",
+  contact:  "Venkatesh Babu (s/o Arjunaiah)",
+  phone:    "9844085118",
+};
 
 export const api = async (url, options = {}) => {
   const token = localStorage.getItem("token");

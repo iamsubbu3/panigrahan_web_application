@@ -21,15 +21,22 @@ const { uploadsPublicPath, uploadsDir } = require("./config/storage.config");
 const app = express();
 
 app.use(cors({
-  origin: "*",
+  origin: "http://13.222.94.130:30080",
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-/* static */
-app.use(uploadsPublicPath, express.static(uploadsDir));
-app.use("/uploads", express.static("uploads"));
+/* static — open CORS for image files so html-to-image can fetch them */
+app.use(uploadsPublicPath, (req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "true");
+  next();
+}, express.static(uploadsDir));
+
+app.use("/uploads", (req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "true");
+  next();
+}, express.static("uploads"));
 
 /* parsers */
 app.use(express.json({ limit: "10mb" }));
@@ -49,7 +56,7 @@ app.use("/api/addresses",    addressRoutes);
 app.use("/api/attachments",  attachmentRoutes);
 app.use("/api/interactions", interactionRoutes);
 app.use("/api/occupation", occupationRoutes);
-app.use("/api/gothra", gothraRoutes);
+app.use("/api/gothras", gothraRoutes);
 app.use("/api/education", educationRoutes);
 
 

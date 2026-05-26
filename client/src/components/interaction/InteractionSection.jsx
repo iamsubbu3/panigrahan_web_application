@@ -6,7 +6,6 @@ import {
   addTask,
   getTasks
 } from "../../logic/interaction.logic";
-import { api } from "../../api/apiClient";
 import { useAuth } from "../../auth/AuthContext";
 
 const Tooltip = ({ text, children }) => (
@@ -83,6 +82,7 @@ export default function InteractionSection({
     //   return;
     // }
 
+    try {
     const newInteraction = await addInteraction({
       clientid: clientId,
       interactiontype: form.interactiontype,
@@ -101,8 +101,12 @@ export default function InteractionSection({
 
     setForm({ interactiontype: "", notes: "", task: "" });
     if (!hideList) load();
+    if (!profileid) setClientId("");
     if (onAdded) onAdded();
-  };
+      } catch {
+        setProfileError("Client ID doesn't exist");
+      }
+      };
 
   if (!enums) return <div>Loading...</div>;
 
@@ -163,7 +167,7 @@ export default function InteractionSection({
           />
         </Tooltip>
 
-        <Tooltip text="Optionally create a follow-up task for this profile">
+        <Tooltip text="Optionally create a follow-up task for this client">
           <input
             className="input w-full"
             placeholder="Create follow-up task"

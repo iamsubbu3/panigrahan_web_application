@@ -1,5 +1,7 @@
 import { api } from "../api/apiClient";
 
+
+export const getCountries = () => api(`/addresses/countries`);
 /* ── Get addresses for a profile or family member ── */
 export const getAddresses = (relationtype, relationid) =>
   api(`/addresses/${relationtype}/${relationid}`);
@@ -46,3 +48,5 @@ export const deleteAddress = (id) =>
 ── */
 export const syncAddressToFamily = (familyid, items) =>
   saveBulkAddresses("family", familyid, items);
+
+export const getAddressById = (id) => api(`/addresses/id/${id}`);

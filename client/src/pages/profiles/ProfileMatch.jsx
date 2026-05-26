@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { api } from "../../api/apiClient";
 import { loadFormEnums } from "../../logic/enumStore";
 import { shareProfile } from "../../api/profileMatchApi";
+import { BASE_URL, COMPANY } from "../../api/apiClient";
 
 const CITY_QUESTION_ID = 5;
 
@@ -87,11 +88,12 @@ export default function ProfileMatch() {
   const [rejecting, setRejecting] = useState(null);
   const [reason, setReason] = useState("");
   const [currentProfile, setCurrentProfile] = useState(null);
-  const [interactions, setInteractions] = useState({});
+  const [interactions, setInteractions] = useState([]);
   const [prefquestions, setPrefquestions] = useState([]);
   const [prefanswers, setPrefanswers] = useState([]);
   const matchedProfiles = interactions;
   const newProfiles = profiles;
+  const previewProfiles = [...matchedProfiles, ...newProfiles];
 
   useEffect(() => { loadFormEnums("profile").then(setEnums); }, []);
 
@@ -137,15 +139,26 @@ export default function ProfileMatch() {
   }, [id]);
 
   useEffect(() => {
-    const handler = (e) => {
-      if (previewIndex === null) return;
-      if (e.key === "Escape") setPreviewIndex(null);
-      if (e.key === "ArrowLeft") setPreviewIndex(i => i > 0 ? i - 1 : i);
-      if (e.key === "ArrowRight") setPreviewIndex(i => i < newProfiles.length - 1 ? i + 1 : i);
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [previewIndex, newProfiles.length]);
+  const handler = (e) => {
+    if (previewIndex === null) return;
+
+    if (e.key === "Escape")
+      setPreviewIndex(null);
+
+    if (e.key === "ArrowLeft")
+      setPreviewIndex(i => i > 0 ? i - 1 : i);
+
+    if (e.key === "ArrowRight")
+      setPreviewIndex(i =>
+        i < previewProfiles.length - 1 ? i + 1 : i
+      );
+  };
+
+  window.addEventListener("keydown", handler);
+
+  return () => window.removeEventListener("keydown", handler);
+
+}, [previewIndex, previewProfiles.length]);
 
   const setAnswer = (questionid, answer, isMulti = false) => {
     setPrefanswers(prev => {
@@ -240,20 +253,22 @@ export default function ProfileMatch() {
     >
       <div style={{ position: "relative", aspectRatio: "3/4", background: "var(--bg-2)", overflow: "hidden" }}>
         <img
-          src={p.profilePicture?.file_url ? `http://localhost:8080${p.profilePicture.file_url}` : "/placeholder-profile.png"}
+          src={p.profilePicture?.file_url ? `${BASE_URL}${p.profilePicture.file_url}` : "/placeholder-profile.png"}
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform 420ms ease" }}
           onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.05)"; }}
           onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
           onClick={() => {
-                            const originalIndex = newProfiles.findIndex(i => i.id === p.id);
-                            setPreviewIndex(originalIndex);
-                          }}
+            const originalIndex =
+              previewProfiles.findIndex(i => i.id === p.id);
+
+            setPreviewIndex(originalIndex);
+          }}
         />
         <span style={{
           position: "absolute", top: "10px", right: "10px",
           width: "10px", height: "10px", borderRadius: "50%",
-          border: "2px solid #fff", boxShadow: "var(--shadow-xs)",
-          background: p.gender === 1 ? "#5d8ac4" : "var(--rose-light)"
+          border: "2px solid #fff",
+          background: (p.profilests === 1 || p.profilests === "1") ? "#0dd532" : "#f90505"
         }} />
       </div>
 
@@ -266,8 +281,7 @@ export default function ProfileMatch() {
         </div>
 
         <div style={{ display: "flex", gap: "6px", marginTop: "12px", paddingTop: "10px", borderTop: "1px solid var(--border)" }}>
-          {[
-            { label: "View",   color: "var(--amber)",  action: () => navigate(`/profiles/${p.id}`, { state: { backTo: location.pathname } }) },
+          {[{ label: "View", color: "var(--amber)", action: () => window.open( `/profiles/${p.id}`, "_blank" )},
             { label: "Share",  color: "var(--teal)",   action: () => share(p.id) },
             { label: "Reject", color: "var(--danger)", action: () => setRejecting(p) }
           ].map(btn => (
@@ -362,7 +376,7 @@ export default function ProfileMatch() {
           boxShadow: "var(--shadow-xs)", animation: "fadeUp .4s var(--smooth) both"
         }}>
           <img
-            src={currentProfile.profilePicture?.file_url ? `http://localhost:8080${currentProfile.profilePicture.file_url}` : "/placeholder-profile.png"}
+            src={currentProfile.profilePicture?.file_url ? `${BASE_URL}${currentProfile.profilePicture.file_url}` : "/placeholder-profile.png"}
             style={{ width: "60px", height: "60px", borderRadius: "var(--r-sm)", objectFit: "cover", border: "2px solid var(--amber-ring)" }}
           />
           <div>
@@ -652,25 +666,31 @@ export default function ProfileMatch() {
           <div className="image-modal-content" onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setPreviewIndex(null)}>✕</button>
             <div className="image-modal-zoom-wrap">
-              <Link to={`/profiles/${newProfiles[previewIndex]?.id}`} target="_blank" style={{ textDecoration: "none" }}>
+              <Link to={`/profiles/${previewProfiles[previewIndex]?.id}`} target="_blank" style={{ textDecoration: "none" }}>
                 <p className="ps-table-name" style={{ cursor: "pointer", color: "white", margin: "10px" }}
                   onMouseEnter={e => e.currentTarget.style.color = "var(--amber)"}
                   onMouseLeave={e => e.currentTarget.style.color = "white"}>
-                  {newProfiles[previewIndex]?.firstname} {newProfiles[previewIndex]?.lastname} - ({newProfiles[previewIndex]?.id})
+                  {previewProfiles[previewIndex]?.firstname} {previewProfiles[previewIndex]?.lastname} - ({previewProfiles[previewIndex]?.id})
                   <br></br>
-                  {newProfiles[previewIndex]?.birthdate} ({newProfiles[previewIndex]?.age})
+                  {previewProfiles[previewIndex]?.birthdate} ({previewProfiles[previewIndex]?.age})
                   <br></br>
-                  {newProfiles[previewIndex]?.swagothranm?.gothraname}
+                  {previewProfiles[previewIndex]?.swagothranm?.gothraname}
                 </p>
               </Link>
-              <img src={`http://localhost:8080${newProfiles[previewIndex]?.profilePicture.file_url}`} alt="Preview" />
+              {previewProfiles[previewIndex]?.profilePicture != null && (
+                <img src={`${BASE_URL}${previewProfiles[previewIndex]?.profilePicture.file_url}`} alt="Preview" />
+              )}
             </div>
             <div style={{ position: "absolute", bottom: "-52px", left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: "12px" }}>
               <button onClick={() => setPreviewIndex(i => i > 0 ? i - 1 : i)} className="modal-zoom-btn" disabled={previewIndex === 0} style={{ opacity: previewIndex === 0 ? 0.4 : 1 }}>←</button>
               <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--ink-3)", minWidth: "60px", textAlign: "center" }}>
-                {previewIndex + 1} / {newProfiles.length}
+                {previewIndex + 1} / {previewProfiles.length}
               </span>
-              <button onClick={() => setPreviewIndex(i => i < newProfiles.length - 1 ? i + 1 : i)} className="modal-zoom-btn" disabled={previewIndex === newProfiles.length - 1} style={{ opacity: previewIndex === newProfiles.length - 1 ? 0.4 : 1 }}>→</button>
+              <button 
+                onClick={() => setPreviewIndex(i => i < previewProfiles.length - 1 ? i + 1 : i)} className="modal-zoom-btn" disabled={previewIndex === previewProfiles.length - 1}
+                style={{ opacity: previewIndex === previewProfiles.length - 1 ? 0.4 : 1 }}>
+                →
+            </button>
             </div>
           </div>
         </div>

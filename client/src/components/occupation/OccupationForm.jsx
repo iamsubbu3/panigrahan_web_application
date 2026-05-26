@@ -9,9 +9,9 @@ export default function OccupationForm({ value, onSave, onCancel, }) {
     value || {
       occname: "",
       occrole: "",
-      income: "",
+      income: null,
       compname: "",
-      occtype: "",
+      occtype: null,
       // parenttype: "",
     }
   );

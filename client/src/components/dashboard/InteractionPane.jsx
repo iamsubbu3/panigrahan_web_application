@@ -99,8 +99,15 @@ export default function InteractionPane({ profileid, clientid: clientidProp }) {
   //   }
   // };
 
-  const runSearch = async (params) => {
-    const r = await searchInteractions(params);
+  const runSearch = async (override = {}) => {
+    const merged = { ...filters, ...override };
+
+    // Strip empty/null/undefined values so they don't reach the backend as ""
+    const clean = Object.fromEntries(
+      Object.entries(merged).filter(([, v]) => v !== "" && v !== null && v !== undefined)
+    );
+
+    const r = await searchInteractions(clean);
     setRows(r || []);
     setDirtyDates({});
   };
@@ -170,7 +177,6 @@ export default function InteractionPane({ profileid, clientid: clientidProp }) {
   };
 
   return (
-    /* No overflow here — the parent right-panel-content handles scrolling */
     <div className="bg-white border rounded-xl p-4 space-y-4">
 
       {deleteConfirm && (
@@ -184,19 +190,23 @@ export default function InteractionPane({ profileid, clientid: clientidProp }) {
         profileid={profileid}
         clientid={clientId}
         hideList
-        onAdded={() => runSearch(filters)}
+        onAdded={() => runSearch()}
       />
+
+      {
+        <h3>Search Interactions According to Date</h3>
+      }
 
       <div className="grid grid-cols-4 gap-2">
         <input
           type="date"
-          value={filters.from}
+          value={filters.from || ""}
           onChange={e => setFilters({ ...filters, from: e.target.value })}
           title="From Date"
         />
         <input
           type="date"
-          value={filters.to}
+          value={filters.to || ""}
           onChange={e => setFilters({ ...filters, to: e.target.value })}
           title="To Date"
         />
@@ -236,15 +246,17 @@ export default function InteractionPane({ profileid, clientid: clientidProp }) {
         Search
       </button>
 
-      {/* ── List — no inner scroll; panel's right-panel-content scrolls ── */}
       <div className="space-y-3">
         {rows.map(r => {
           const baseDate = r.createdat ?? r.created_at;
           const dirty = dirtyDates[r.id];
           const canEdit = currentStaffId && Number(r.userid) === Number(currentStaffId);
 
-          const hasLinkedTask = r.tasks && r.tasks.some(t => t.interactionid === r.id);
+          const linkedTask = r.tasks?.find(t => t.interactionid === r.id);
+          const hasLinkedTask = !!linkedTask;
           const canDelete = canEdit && !hasLinkedTask;
+
+          const interactionCategory =hasLinkedTask ? "Interaction + Follow-up task" : "Interaction Only";
 
           return (
             <div key={r.id} className="border rounded p-3 text-sm space-y-2">
@@ -256,6 +268,26 @@ export default function InteractionPane({ profileid, clientid: clientidProp }) {
               </div>
 
               <div>{r.notes}</div>
+
+              <div
+                  onClick={() => {
+                    if (linkedTask) {
+                      window.open(
+                        `/interactions/tasks?taskId=${linkedTask.id}`,
+                        "_blank"
+                      );
+                    }
+                  }}
+                  className={`inline-block px-2 py-1 rounded text-xs font-medium cursor-pointer ${
+                    hasLinkedTask
+                      ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                      : "bg-blue-100 text-blue-700"
+                  }`}
+                >
+                  {hasLinkedTask
+                    ? "Interaction + Follow-up"
+                    : "Interaction Only"}
+                </div>
 
               <div className="text-xs text-gray-400">
                 Created by Staff ID: {r.userid}

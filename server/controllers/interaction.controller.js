@@ -24,7 +24,6 @@ exports.create = async (req, res) => {
     });
     res.json(row);
   } catch (err) {
-    console.error("create interaction error:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
@@ -123,7 +122,6 @@ exports.createTask = async (req, res) => {
     });
     res.json(row);
   } catch (err) {
-    console.error("create task error:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
@@ -156,6 +154,31 @@ exports.searchTasks = async (req, res) => {
     res.json(rows);
   } catch (err) {
     console.error("search tasks error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.searchTaskSuggestions = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.length < 2) return res.json([]);
+
+    const { ProfileTask } = require("../models");
+    const { Op } = require("sequelize");
+
+    const rows = await ProfileTask.findAll({
+      where: {
+        is_deleted: 0,
+        description: { [Op.like]: `%${q}%` }
+      },
+      attributes: ["description"],
+      group: ["description"],
+      limit: 8,
+      order: [["description", "ASC"]]
+    });
+
+    res.json(rows.map(r => r.description));
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };

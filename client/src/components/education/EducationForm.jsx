@@ -7,7 +7,7 @@ export default function EducationForm({ value, onSave, onCancel }) {
       degree: "",
       college: "",
       fieldstudy: "",
-      year: "",
+      year: null,
       // sort_order: ""
     }
   );

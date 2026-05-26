@@ -18,10 +18,10 @@ exports.create = (data) => {
   return Address.create(data);
 };
 
-/* ── Edit: create new row, return new id (old row untouched) ── */
-exports.createNew = (data) => {
-  return Address.create(data);
-};
+// /* ── Edit: create new row, return new id (old row untouched) ── */
+// exports.createNew = (data) => {
+//   return Address.create(data);
+// };
 
 /* ── Update existing row ── */
 exports.update = (id, data) => {
@@ -57,4 +57,29 @@ exports.getDistinctCities = async () => {
   });
 
   return rows.map(r => r.city).filter(Boolean);
+};
+
+exports.getDistinctCountries = async () => {
+  const rows = await Address.findAll({
+    attributes: [
+      [Sequelize.fn("DISTINCT", Sequelize.col("country")), "country"]
+    ],
+    where: {
+      country: {
+        [Sequelize.Op.and]: [
+          { [Sequelize.Op.ne]: null },
+          { [Sequelize.Op.ne]: "" }
+        ]
+      },
+      [Sequelize.Op.and]: Sequelize.literal(`EXISTS (
+        SELECT 1 FROM profiles p
+        WHERE p.current_address_id = Address.id
+           OR p.permanent_address_id = Address.id
+           OR p.work_address_id = Address.id
+      )`)
+    },
+    order: [["country", "ASC"]],
+    raw: true
+  });
+  return rows.map(r => r.country).filter(Boolean);
 };

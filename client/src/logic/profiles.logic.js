@@ -26,10 +26,10 @@ export const searchProfilesAdmin = (filters, page = 1) => {
   return api(`/profiles/search?${params}`, { method: "POST", body: JSON.stringify(filters) });
 };
 
-export const changests = async (id, sts) => {
+export const changests = async (id, sts, inacreason) => {
   return api(`/profiles/${id}/changests`, {
     method: "POST",
-    body: JSON.stringify({sts})
+    body: JSON.stringify({sts, inacreason})
   });
 };
 

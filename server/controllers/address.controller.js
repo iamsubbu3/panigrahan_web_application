@@ -14,13 +14,22 @@ function pickAddressFields(data) {
   return clean;
 }
 
-/* ── Get distinct cities from address table ── */
+/* ── Get distinct cities and countries from address table ── */
 exports.getCities = async (req, res, next) => {
   try {
     const cities = await addressService.getDistinctCities();
     res.json(cities);
   } catch (err) {
     next(err);
+  }
+};
+
+exports.getCountries = async (req, res) => {
+  try {
+    const countries = await addressService.getDistinctCountries();
+    res.json(countries);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 

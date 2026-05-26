@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { searchTasks } from "../../logic/interaction.search.logic";
 import { addTask } from "../../logic/interaction.logic";
@@ -62,9 +62,83 @@ const ConfirmDeleteDialog = ({ onConfirm, onCancel }) => (
 );
 
 /* ─────────────────────────────────────────────────────────────
+   NOTES AUTOCOMPLETE INPUT
+───────────────────────────────────────────────────────────── */
+function NotesAutocomplete({ value, onChange, onSelect }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [open, setOpen]               = useState(false);
+  const debounceRef                   = useRef(null);
+  const wrapperRef                    = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const fetchSuggestions = (q) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!q || q.length < 2) { setSuggestions([]); setOpen(false); return; }
+
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const results = await api(`/interactions/tasks/suggestions?q=${encodeURIComponent(q)}`);
+        setSuggestions(results || []);
+        setOpen((results || []).length > 0);
+      } catch {
+        setSuggestions([]);
+        setOpen(false);
+      }
+    }, 250);
+  };
+
+  const handleChange = (e) => {
+    onChange(e.target.value);
+    fetchSuggestions(e.target.value);
+  };
+
+  const handleSelect = (suggestion) => {
+    onSelect(suggestion);
+    setSuggestions([]);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={wrapperRef} className="relative w-full">
+      <input
+        className="w-full"
+        placeholder="Search notes…"
+        value={value}
+        onChange={handleChange}
+        onFocus={() => suggestions.length > 0 && setOpen(true)}
+        autoComplete="off"
+      />
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-20 left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto text-sm">
+          {suggestions.map((s, i) => (
+            <li
+              key={i}
+              className="px-3 py-2 hover:bg-blue-50 cursor-pointer truncate border-b last:border-0"
+              onMouseDown={() => handleSelect(s)}
+            >
+              {s}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
    ADD TASK SECTION
 ───────────────────────────────────────────────────────────── */
-function AddTaskSection({ profileid, onAdded }) {
+function AddTaskSection({ profileid, clientId, onAdded }) {
   const { getCurrentStaffId } = useAuth();
   const currentStaffId = getCurrentStaffId();
 
@@ -99,6 +173,7 @@ function AddTaskSection({ profileid, onAdded }) {
         ...(form.duedate ? { duedate: form.duedate } : {})
       });
       setForm({ description: "", duedate: "" });
+      if (!profileid) setProfileId("");
       if (onAdded) onAdded();
     } catch (err) {
       setProfileError(err?.message || "Client ID doesn't exist.");
@@ -296,18 +371,22 @@ export default function TaskPane({ profileid: profileidProp, clientid: clientidP
         <AddTaskSection profileid={clientId} onAdded={() => runSearch()} />
       )}
 
+      {
+        <h3>Search Tasks According to Date</h3>
+      }
+
       {!focusedTaskId && (
         <div className="bg-white border rounded-xl p-4 space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <input
               type="date"
-              value={filters.from}
+              value={filters.from || ""}
               onChange={e => setFilters({ ...filters, from: e.target.value })}
               title="From Date"
             />
             <input
               type="date"
-              value={filters.to}
+              value={filters.to || ""}
               onChange={e => setFilters({ ...filters, to: e.target.value })}
               title="To Date"
             />
@@ -355,7 +434,7 @@ export default function TaskPane({ profileid: profileidProp, clientid: clientidP
             </label>
           </div>
 
-          <button onClick={handleSearch} className="btn btn-primary">Search</button>
+          <button onClick={() => { handleSearch(); }} className="btn btn-primary">Search</button>
         </div>
       )}
 
@@ -366,6 +445,9 @@ export default function TaskPane({ profileid: profileidProp, clientid: clientidP
           const dirtyDate   = dirtyDueDates[t.id];
           const baseDate    = t.duedate || t.createdat;
           const canEdit     = currentStaffId && Number(t.createdby) === Number(currentStaffId);
+          const hasInteraction = !!t.interactionid;
+
+          const taskCategory = hasInteraction ? "Interaction + Follow-up" : "Task Only";
 
           return (
             <div key={t.id} className="bg-white border rounded-xl p-3 text-sm space-y-2">
@@ -377,6 +459,16 @@ export default function TaskPane({ profileid: profileidProp, clientid: clientidP
               </div>
 
               <div>{t.description}</div>
+
+              <div
+                className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                  hasInteraction
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-purple-100 text-purple-700"
+                }`}
+              >
+                {taskCategory}
+              </div>
 
               <div className="text-xs text-gray-400">
                 Created by Staff ID: {t.createdby}

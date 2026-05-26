@@ -8,9 +8,9 @@ module.exports = (sequelize, DataTypes) => {
         unique: true
       },
       agegap: DataTypes.TINYINT,
-      minincome: DataTypes.INTEGER.UNSIGNED,
-      minnetworth: {type: DataTypes.INTEGER.UNSIGNED, allowNull: true},
-      // educationlevel: DataTypes.TINYINT.UNSIGNED,
+      minincome: DataTypes.DECIMAL(10, 2),
+      minnetworth: {type: DataTypes.DECIMAL(10, 2), allowNull: true},
+      //educationlevel: DataTypes.TINYINT.UNSIGNED,
     },
     {
       tableName: "profilepreference",

@@ -21,6 +21,7 @@ router.post("/:id/profile-picture",   requireAuth, controller.setProfilePicture)
 
 // Admin routes
 router.get("/admin/stats",    requireAuth, controller.getAdminStats);
+router.post("/:id/changests",requireAuth,authorize(PERMISSIONS.PROFILE_EDIT),controller.changests);
 router.get("/admin/list",     requireAuth, controller.listForAdmin);
 router.get("/admin/activity", requireAuth, controller.getStaffActivity);
 

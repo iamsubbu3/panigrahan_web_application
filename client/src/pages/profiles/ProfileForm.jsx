@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { createProfile, getProfile, updateProfile } from "../../logic/profiles.logic";
-import { getGothras } from "../../logic/gothras.logic";
+import { getGothras, createGothra, updateGothra } from "../../logic/gothras.logic";
 import { loadFormEnums } from "../../logic/enumStore";
 // import EducationSection from "../../components/education/EducationSection";
 
@@ -26,7 +26,8 @@ const feetInchesToCm = (feet, inches) => {
 };
 
 // ─── HeightPicker ─────────────────────────────────────────────────────────────
-export function HeightPicker({ valueCm, onChange }) {
+export function HeightPicker({ valueCm, onChange, inputClassName }) {
+  const selectClass = inputClassName || "pf-input pf-select";
   const { feet: initFt, inches: initIn } = cmToFeetInches(valueCm);
   const [feet,   setFeet]   = useState(initFt);
   const [inches, setInches] = useState(initIn);
@@ -57,13 +58,13 @@ export function HeightPicker({ valueCm, onChange }) {
   return (
     <div>
       <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-        <select className="pf-input pf-select" value={feet} onChange={handleFeet} style={{ flex: 1 }}>
+        <select className={selectClass} value={feet} onChange={handleFeet} style={{ flex: 1 }}>
           <option value="">ft</option>
           {FEET_OPTIONS.map(f => (
             <option key={f} value={f}>{f} ft</option>
           ))}
         </select>
-        <select className="pf-input pf-select" value={inches} onChange={handleInches} style={{ flex: 1 }}>
+        <select className={selectClass} value={inches} onChange={handleInches} style={{ flex: 1 }}>
           <option value="">in</option>
           {INCHES_OPTIONS.map(i => (
             <option key={i} value={i}>{i} in</option>
@@ -101,15 +102,15 @@ export default function ProfileForm() {
     birthdate: "",
     birthtime: "",
     birthplace: "",
-    color: "",
-    weight: "",
+    color: null,
+    weight: null,
     birthrasi: "",
-    birthstar: "",
-    starpada: "",
-    swagothra: "",
-    mamagothra: "",
-    height: "",
-    gender: "",
+    birthstar: null,
+    starpada: null,
+    swagothra: null,
+    mamagothra: null,
+    height: null,
+    gender: null,
     phonenumber: "",
     email: "",
     borym: null,
@@ -121,11 +122,12 @@ export default function ProfileForm() {
     sisy: null,
     sisym: null,
     hastwin: null,
-    maritalsts: "",
-    childrencount: "",
-    networth: "",
-    income: "",
+    maritalsts: null,
+    childrencount: null,
+    networth: null,
+    income: null,
     assetdets: "",
+    inacreason: "",
     // education1: "",
     // almamater: "",
     // education2: "",
@@ -143,10 +145,20 @@ export default function ProfileForm() {
   const [selectedGothra, setSelectedGothra] = useState(null);
   const [selectedMamaGothra, setSelectedMamaGothra] = useState(null);
   const [errors, setErrors] = useState({});
+  const [showAddGothra,  setShowAddGothra]  = useState(false);
+  const [newGothra,      setNewGothra]      = useState({ gothraname: "", gothrarushi: "", gothranum: "", aliases: "" });
+  const [savingGothra,   setSavingGothra]   = useState(false);
 
   useEffect(() => {
     loadFormEnums("profile").then(setEnums).catch(() => setEnums({}));
-    getGothras().then(data => setGothras(data || [])).catch(() => setGothras([]));
+    getGothras().then(data => {
+      const sorted = (data || []).sort((a, b) => {
+      const nameA = a.gothraname;
+      const nameB = b.gothraname;
+      return nameA.localeCompare(nameB);
+    });
+    setGothras(sorted);
+  }).catch(() => setGothras([]));
 
     if (!isEdit) return;
     setLoading(true);
@@ -178,6 +190,8 @@ export default function ProfileForm() {
 
     try {
       if (isEdit) {
+        if (form.birthstar == "") form.birthstar = null;
+        if (form.starpada == "") form.starpada = null;
         await updateProfile(id, form);
         navigate(`/profiles/${id}`);
       } else {
@@ -337,7 +351,7 @@ export default function ProfileForm() {
             <div className="pf-field pf-field-full">
               <label className="pf-label">Swagothram</label>
               <select name="swagothra" value={form.swagothra || ""}
-                className="w-full border rounded-md px-3 py-2"
+                className="pf-input pf-select"
                 onChange={(e) => {
                   const gid = Number(e.target.value);
                   const gothra = gothras.find(g => g.id === gid);
@@ -351,8 +365,13 @@ export default function ProfileForm() {
                 ))}
               </select>
               {selectedGothra && (
-                <div className="text-xs text-gray-400 mt-1 ml-1">
-                  {selectedGothra.gothrarushi} Rushi | Gothra No: {selectedGothra.gothranum}
+                <div style={{ fontSize: "11px", color: "var(--ink-3)", marginTop: "4px", paddingLeft: "2px" }}>
+                  {selectedGothra.gothraname} · {selectedGothra.gothrarushi}
+                  {selectedGothra.aliases?.length > 0 && (
+                    <span style={{ marginLeft: "8px" }}>
+                      · Also known as: {selectedGothra.aliases.join(", ")}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -360,7 +379,7 @@ export default function ProfileForm() {
             <div className="pf-field pf-field-full">
               <label className="pf-label">Mama Gothram</label>
               <select name="mamagothra" value={form.mamagothra || ""}
-                className="w-full border rounded-md px-3 py-2"
+                className="pf-input pf-select"
                 onChange={(e) => {
                   const gid = Number(e.target.value);
                   const gothra = gothras.find(g => g.id === gid);
@@ -374,8 +393,150 @@ export default function ProfileForm() {
                 ))}
               </select>
               {selectedMamaGothra && (
-                <div className="text-xs text-gray-400 mt-1 ml-1">
-                  {selectedMamaGothra.gothrarushi} Rushi | Gothra No: {selectedMamaGothra.gothranum}
+                <div style={{ fontSize: "11px", color: "var(--ink-3)", marginTop: "4px", paddingLeft: "2px" }}>
+                  {selectedMamaGothra.gothraname} · {selectedMamaGothra.gothrarushi}
+                  {selectedMamaGothra.aliases?.length > 0 && (
+                    <span style={{ marginLeft: "8px" }}>
+                      · Also known as: {selectedMamaGothra.aliases.join(", ")}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          {/* ── Add / Edit Gothra ── */}
+            <div className="pf-field pf-field-full">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                <label className="pf-label">Manage Gothra</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddGothra(v => !v);
+                    setNewGothra({ gothraname: "", gothrarushi: "", gothranum: "", aliases: "" });
+                  }}
+                  style={{ fontSize: "11px", color: "var(--amber)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}
+                >
+                  {showAddGothra ? "− Cancel" : "+ Add / Edit"}
+                </button>
+              </div>
+
+              {showAddGothra && (
+                <div style={{ border: "1px solid var(--border)", borderRadius: "var(--r-sm)", padding: "14px 16px", background: "var(--bg)", display: "flex", flexDirection: "column", gap: "10px" }}>
+
+                  {/* Select existing gothra to edit */}
+                  <div className="pf-field">
+                    <label className="pf-label">Edit Existing Gothra (optional)</label>
+                    <select
+                      className="pf-input pf-select"
+                      value={newGothra._editId || ""}
+                      onChange={(e) => {
+                        const g = gothras.find(x => String(x.id) === e.target.value);
+                        if (g) {
+                          setNewGothra({
+                            _editId:     String(g.id),
+                            gothraname:  g.gothraname,
+                            gothrarushi: g.gothrarushi || "",
+                            gothranum:   g.gothranum   || "",
+                            aliases:     g.aliases ? g.aliases.join(", ") : "",
+                          });
+                        } else {
+                          setNewGothra({ gothraname: "", gothrarushi: "", gothranum: "", aliases: "" });
+                        }
+                      }}
+                    >
+                      <option value="">— Add new gothra —</option>
+                      {gothras.map(g => (
+                        <option key={g.id} value={g.id}>
+                          {/* g.aliases?.[0] || g.gothraname */} {g.gothraname}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                    <div className="pf-field">
+                      <label className="pf-label">Gothra Name {!newGothra._editId && "*"}</label>
+                      <input
+                        className="pf-input"
+                        placeholder="e.g. Agasthya Kula"
+                        value={newGothra.gothraname}
+                        onChange={e => setNewGothra(prev => ({ ...prev, gothraname: e.target.value }))}
+                      />
+                    </div>
+                    <div className="pf-field">
+                      <label className="pf-label">Rushi Name {!newGothra._editId && "*"}</label>
+                      <input
+                        className="pf-input"
+                        placeholder="e.g. Agasthyasa"
+                        value={newGothra.gothrarushi}
+                        onChange={e => setNewGothra(prev => ({ ...prev, gothrarushi: e.target.value }))}
+                      />
+                    </div>
+                    <div className="pf-field" style={{ gridColumn: "span 2" }}>
+                      <label className="pf-label">Sanketha Namams / Aliases (comma separated)</label>
+                      <input
+                        className="pf-input"
+                        placeholder="e.g. Anubala, Anubala Gula, Anubhula"
+                        value={newGothra.aliases}
+                        onChange={e => setNewGothra(prev => ({ ...prev, aliases: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={savingGothra || !newGothra.gothraname.trim()}
+                    onClick={async () => {
+                      setSavingGothra(true);
+                      try {
+                        const aliasArr = newGothra.aliases
+                          ? newGothra.aliases.split(",").map(a => a.trim()).filter(Boolean)
+                          : [];
+
+                        if (newGothra._editId) {
+                          await updateGothra(newGothra._editId, {
+                            gothraname:  newGothra.gothraname.trim(),
+                            gothrarushi: newGothra.gothrarushi.trim() || newGothra.gothraname.trim(),
+                            gothranum:   newGothra.gothranum || null,
+                            aliases:     aliasArr,
+                          });
+                          setGothras(prev => prev.map(g =>
+                            String(g.id) === newGothra._editId
+                              ? { ...g, gothraname: newGothra.gothraname.trim(), gothrarushi: newGothra.gothrarushi.trim() || newGothra.gothraname.trim(), aliases: aliasArr }
+                              : g
+                          ));
+                          alert("Gothra updated successfully");
+                        } else {
+                          const created = await createGothra({
+                            gothraname:  newGothra.gothraname.trim(),
+                            gothrarushi: newGothra.gothrarushi.trim() || newGothra.gothraname.trim(),
+                            gothranum:   newGothra.gothranum || null,
+                            aliases:     aliasArr,
+                          });
+                          const fresh = { ...created.dataValues ?? created };
+                          setGothras(prev => [...prev, fresh].sort((a, b) => a.gothraname.localeCompare(b.gothraname)));
+                          setForm(prev => ({ ...prev, swagothra: fresh.id }));
+                          setSelectedGothra(fresh);
+                          alert("Gothra added successfully");
+                        }
+
+                        setNewGothra({ gothraname: "", gothrarushi: "", gothranum: "", aliases: "" });
+                        setShowAddGothra(false);
+                      } catch (err) {
+                        alert(`Failed: ${err.message}`);
+                      } finally {
+                        setSavingGothra(false);
+                      }
+                    }}
+                    style={{
+                      alignSelf: "flex-start", padding: "8px 20px",
+                      border: "none", borderRadius: "var(--r-sm)",
+                      background: savingGothra || !newGothra.gothraname.trim() ? "var(--border)" : "var(--amber)",
+                      color: "#fff", fontSize: "13px", fontWeight: 600,
+                      cursor: savingGothra || !newGothra.gothraname.trim() ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {savingGothra ? "Saving..." : newGothra._editId ? "Update Gothra" : "Save Gothra"}
+                  </button>
                 </div>
               )}
             </div>

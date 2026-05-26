@@ -3,11 +3,17 @@ const controller = require("../controllers/address.controller");
 const authorize = require("../middlewares/roleauth.middleware");
 const { PERMISSIONS } = require("../config/roles.config");
 
-/* ── Distinct cities (for preference dropdowns) ── */
+/* ── Distinct cities and countries(for preference dropdowns) ── */
 router.get(
   "/cities",
   authorize(PERMISSIONS.PROFILE_VIEW),
   controller.getCities
+);
+
+router.get(
+  "/countries",
+  authorize(PERMISSIONS.PROFILE_VIEW),
+  controller.getCountries
 );
 
 /* ── Profile addresses ── */

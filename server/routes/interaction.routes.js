@@ -13,6 +13,7 @@ router.post("/task", requireAuth, controller.createTask);
 router.get("/task/:profileid", requireAuth, controller.tasks);
 router.get("/tasks/search", requireAuth, controller.searchTasks);
 router.post("/tasks/:id/update", requireAuth, controller.updateTask);
+router.get("/tasks/suggestions", controller.searchTaskSuggestions);
 router.patch("/tasks/:id/soft-delete", requireAuth, controller.softDeleteTask);
 
 /* ---------------- PROFILE EXISTS CHECK ---------------- */
