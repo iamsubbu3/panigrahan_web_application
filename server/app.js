@@ -26,7 +26,7 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
-
+ 
 /* static — open CORS for image files so html-to-image can fetch them */
 app.use(uploadsPublicPath, (req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "true");

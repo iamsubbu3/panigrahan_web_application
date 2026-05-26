@@ -10,7 +10,7 @@ export const COMPANY = {
   address2: "opp. Rice Memorial Church, Bengaluru, Karnataka 560002",
   contact:  "Venkatesh Babu (s/o Arjunaiah)",
   phone:    "9844085118",
-};
+}; 
 
 export const api = async (url, options = {}) => {
   const token = localStorage.getItem("token");

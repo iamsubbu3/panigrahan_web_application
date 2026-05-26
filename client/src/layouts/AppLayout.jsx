@@ -3,9 +3,10 @@ import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import InteractionPane from "../components/dashboard/InteractionPane";
 import TaskPane from "../components/dashboard/TaskPane";
-import "/work/panigrahan/client/src/styles.css";
+// import "/work/panigrahan/client/src/styles.css";
+import "../styles.css"
 
-export default function AppLayout() {
+export default function AppLayout() { 
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, isAdmin } = useAuth();
