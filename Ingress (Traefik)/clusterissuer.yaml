@@ -8,7 +8,7 @@ spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
 
-    email: YOUR_EMAIL_ADDRESS
+    email: subramanyam9979@gmail.com
 
     privateKeySecretRef:
       name: letsencrypt-prod

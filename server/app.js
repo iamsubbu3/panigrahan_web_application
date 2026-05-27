@@ -21,7 +21,7 @@ const { uploadsPublicPath, uploadsDir } = require("./config/storage.config");
 const app = express();
 
 app.use(cors({
-  origin: "http://13.222.94.130:30080",
+  origin: "https://panigrahanam.in",
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]

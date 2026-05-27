@@ -1,5 +1,7 @@
-const API_BASE = "http://13.222.94.130:30081/api";
-export const BASE_URL = "http://13.222.94.130:30081";
+const API_BASE = "/api";
+
+export const BASE_URL = "";
+export default API_BASE;
 
 export const COMPANY = {
   name:     "Arjunaiah Venkatesh Matrimony",
