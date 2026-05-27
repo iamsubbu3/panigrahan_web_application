@@ -63,7 +63,7 @@ pipeline {
         /* EMAIL NOTIFICATIONS                                   */
         /* ===================================================== */
 
-        NOTIFY_EMAIL = "subramanyam9979@gmail.com"
+        NOTIFY_EMAIL = "subramanyam9979@gmail.com,poojipoojari2006@gmail.com,karthik2018mr@gmail.com"
     }
 
     triggers {
