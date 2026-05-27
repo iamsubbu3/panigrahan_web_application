@@ -1,24 +1,94 @@
+// const express = require("express");
+// const cors = require("cors");
+
+// const authRoutes        = require("./routes/auth.routes");
+// const attachmentRoutes  = require("./routes/attachment.routes");
+// const productRoutes     = require("./routes/product.routes");
+// const customerRoutes    = require("./routes/customer.routes");
+// const profileRoutes     = require("./routes/profile.routes");
+// const enumRoutes        = require("./routes/enumtype.routes");
+// const addressRoutes     = require("./routes/address.routes");
+// const profileMatchRoutes = require("./routes/profileMatch.routes");
+// const occupationRoutes  = require("./routes/occupation.routes");
+// const interactionRoutes = require("./routes/interaction.routes");
+// const gothraRoutes = require("./routes/gothras.routes");
+// const educationRoutes = require("./routes/education.routes");
+
+
+// const { uploadsPublicPath, uploadsDir } = require("./config/storage.config");
+// const { requireAuth } = require("./middlewares/auth.middleware");
+
+// const app = express();
+
+// app.use(cors({
+//   origin: "http://13.222.94.130:30080",
+//   credentials: true,
+//   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+//   allowedHeaders: ["Content-Type", "Authorization"]
+// }));
+ 
+// /* static — open CORS for image files so html-to-image can fetch them */
+// app.use(uploadsPublicPath, (req, res, next) => {
+//   res.setHeader("Access-Control-Allow-Origin", "*");
+//   next();
+// }, express.static(uploadsDir));
+
+// app.use("/uploads", (req, res, next) => {
+//   res.setHeader("Access-Control-Allow-Origin", "*");
+//   next();
+// }, express.static("uploads"));
+
+// /* parsers */
+// app.use(express.json({ limit: "10mb" }));
+// app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// /* public routes */
+// app.use("/api/auth", authRoutes);
+
+// /* protected routes */
+// app.use(requireAuth);
+// app.use("/api/products",     productRoutes);
+// app.use("/api/customers",    customerRoutes);
+// app.use("/api/profiles",     profileRoutes);
+// app.use("/api/profilematch", profileMatchRoutes);
+// app.use("/api/enumtypes",    enumRoutes);
+// app.use("/api/addresses",    addressRoutes);
+// app.use("/api/attachments",  attachmentRoutes);
+// app.use("/api/interactions", interactionRoutes);
+// app.use("/api/occupation", occupationRoutes);
+// app.use("/api/gothras", gothraRoutes);
+// app.use("/api/education", educationRoutes);
+
+
+
+// module.exports = app;
+
+
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
-const authRoutes        = require("./routes/auth.routes");
-const attachmentRoutes  = require("./routes/attachment.routes");
-const productRoutes     = require("./routes/product.routes");
-const customerRoutes    = require("./routes/customer.routes");
-const profileRoutes     = require("./routes/profile.routes");
-const enumRoutes        = require("./routes/enumtype.routes");
-const addressRoutes     = require("./routes/address.routes");
+const authRoutes = require("./routes/auth.routes");
+const attachmentRoutes = require("./routes/attachment.routes");
+const productRoutes = require("./routes/product.routes");
+const customerRoutes = require("./routes/customer.routes");
+const profileRoutes = require("./routes/profile.routes");
+const enumRoutes = require("./routes/enumtype.routes");
+const addressRoutes = require("./routes/address.routes");
 const profileMatchRoutes = require("./routes/profileMatch.routes");
-const occupationRoutes  = require("./routes/occupation.routes");
+const occupationRoutes = require("./routes/occupation.routes");
 const interactionRoutes = require("./routes/interaction.routes");
 const gothraRoutes = require("./routes/gothras.routes");
 const educationRoutes = require("./routes/education.routes");
 
-
-const { uploadsPublicPath, uploadsDir } = require("./config/storage.config");
 const { requireAuth } = require("./middlewares/auth.middleware");
 
 const app = express();
+
+
+// =========================================================
+// CORS CONFIGURATION
+// =========================================================
 
 app.use(cors({
   origin: "http://13.222.94.130:30080",
@@ -26,39 +96,58 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
- 
-/* static — open CORS for image files so html-to-image can fetch them */
-app.use(uploadsPublicPath, (req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  next();
-}, express.static(uploadsDir));
 
-app.use("/uploads", (req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  next();
-}, express.static("uploads"));
 
-/* parsers */
+// =========================================================
+// STATIC FILE SERVING FOR UPLOADS
+// =========================================================
+
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    next();
+  },
+  express.static(path.join(__dirname, "uploads"))
+);
+
+
+// =========================================================
+// BODY PARSERS
+// =========================================================
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-/* public routes */
+
+// =========================================================
+// PUBLIC ROUTES
+// =========================================================
+
 app.use("/api/auth", authRoutes);
 
-/* protected routes */
+
+// =========================================================
+// PROTECTED ROUTES
+// =========================================================
+
 app.use(requireAuth);
-app.use("/api/products",     productRoutes);
-app.use("/api/customers",    customerRoutes);
-app.use("/api/profiles",     profileRoutes);
+
+app.use("/api/products", productRoutes);
+app.use("/api/customers", customerRoutes);
+app.use("/api/profiles", profileRoutes);
 app.use("/api/profilematch", profileMatchRoutes);
-app.use("/api/enumtypes",    enumRoutes);
-app.use("/api/addresses",    addressRoutes);
-app.use("/api/attachments",  attachmentRoutes);
+app.use("/api/enumtypes", enumRoutes);
+app.use("/api/addresses", addressRoutes);
+app.use("/api/attachments", attachmentRoutes);
 app.use("/api/interactions", interactionRoutes);
 app.use("/api/occupation", occupationRoutes);
 app.use("/api/gothras", gothraRoutes);
 app.use("/api/education", educationRoutes);
 
 
+// =========================================================
+// EXPORT APP
+// =========================================================
 
 module.exports = app;
