@@ -15,8 +15,8 @@ const gothraRoutes = require("./routes/gothras.routes");
 const educationRoutes = require("./routes/education.routes");
 
 
-const { requireAuth } = require("./middlewares/auth.middleware");
 const { uploadsPublicPath, uploadsDir } = require("./config/storage.config");
+const { requireAuth } = require("./middlewares/auth.middleware");
 
 const app = express();
 
@@ -29,12 +29,12 @@ app.use(cors({
  
 /* static — open CORS for image files so html-to-image can fetch them */
 app.use(uploadsPublicPath, (req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "true");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   next();
 }, express.static(uploadsDir));
 
 app.use("/uploads", (req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "true");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   next();
 }, express.static("uploads"));
 
