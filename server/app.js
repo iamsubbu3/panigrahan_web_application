@@ -21,20 +21,24 @@ const { uploadsPublicPath, uploadsDir } = require("./config/storage.config");
 const app = express();
 
 app.use(cors({
-  origin: "http://13.222.94.130:30080",
+  origin: process.env.FRONTEND_URL,
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
- 
+
 /* static — open CORS for image files so html-to-image can fetch them */
 app.use(uploadsPublicPath, (req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "true");
+  const origin = req.headers.origin;
+  if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Access-Control-Allow-Credentials", "true");
   next();
 }, express.static(uploadsDir));
 
 app.use("/uploads", (req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "true");
+  const origin = req.headers.origin;
+  if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Access-Control-Allow-Credentials", "true");
   next();
 }, express.static("uploads"));
 
