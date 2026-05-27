@@ -6,7 +6,7 @@ metadata:
   namespace: panigrahan
 
 spec:
-  replicas: 2
+  replicas: 1
   revisionHistoryLimit: 2
 
   selector:
@@ -95,6 +95,14 @@ spec:
           initialDelaySeconds: 40
           periodSeconds: 15
 
+        volumeMounts:
+          - name: uploads-storage
+            mountPath: /app/uploads
+            
+      volumes:
+        - name: uploads-storage
+          persistentVolumeClaim:
+            claimName: uploads-pvc
 
 ---
 apiVersion: v1
