@@ -21,12 +21,12 @@ const { uploadsPublicPath, uploadsDir } = require("./config/storage.config");
 const app = express();
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: "http://13.222.94.130:30080",
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
-
+ 
 /* static — open CORS for image files so html-to-image can fetch them */
 app.use(uploadsPublicPath, (req, res, next) => {
   const origin = req.headers.origin;
