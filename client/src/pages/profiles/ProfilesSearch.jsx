@@ -444,7 +444,7 @@ function useShareExport() {
 
     if (photoUrl) {
       const preloadImg = new Image();
-      preloadImg.crossOrigin = "use-credentials";
+      preloadImg.crossOrigin = "anonymous";
       preloadImg.src = photoUrl;
       await new Promise((resolve) => { preloadImg.onload = resolve; preloadImg.onerror = resolve; setTimeout(resolve, 2000); });
     }
@@ -476,7 +476,7 @@ function useShareExport() {
         width: 360, height: 640, pixelRatio: 3, backgroundColor: "#1e1101", quality: 0.95,
         skipFonts: true,
         style: { transform: "scale(1)", transformOrigin: "top left" },
-        fetchRequestInit: { mode: "cors", credentials: "include" },
+        fetchRequestInit: { mode: "cors" },
         filter: (node) => {
           if (node.tagName === "IMG" && (!node.src || node.naturalWidth === 0)) return false;
           return true;
