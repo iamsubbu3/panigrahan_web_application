@@ -4,6 +4,16 @@ import { api } from "../../api/apiClient";
 import { loadFormEnums } from "../../logic/enumStore";
 import { BASE_URL, COMPANY } from "../../api/apiClient";
 
+const getImageUrl = (url) => {
+  if (!url) return "/placeholder-profile.png";
+
+  if (url.startsWith("http")) {
+    return url;
+  }
+
+  return `${BASE_URL}${url}`;
+};
+
 const CITY_QUESTION_ID = 5;
 
 /* ── Searchable city dropdown ── */
@@ -196,7 +206,7 @@ export default function ProfilePreference() {
           boxShadow: "var(--shadow-xs)", animation: "fadeUp .4s var(--smooth) both"
         }}>
           <img
-            src={profile.profilePicture?.file_url ? `${BASE_URL}${profile.profilePicture.file_url}` : "/placeholder-profile.png"}
+            src={getImageUrl(profile.profilePicture?.file_url)}
             style={{ width: "60px", height: "60px", borderRadius: "var(--r-sm)", objectFit: "cover", border: "2px solid var(--amber-ring)" }}
           />
           <div>

@@ -11,6 +11,16 @@ import { BASE_URL, COMPANY } from "../../api/apiClient";
 import { toJpeg } from 'html-to-image';
 import { createRoot } from "react-dom/client";
 
+const getImageUrl = (url) => {
+  if (!url) return "/assets/defaultProfile.png";
+
+  if (url.startsWith("http")) {
+    return url;
+  }
+
+  return `${BASE_URL}${url}`;
+};
+
 // ─── Height helpers ───────────────────────────────────────────────────────────
 const feetInchesToCm = (feet, inches) => {
   const f = parseInt(feet)   || 0;
@@ -238,7 +248,7 @@ function PhotoModal({ profiles, index, onClose, onNavigate, gothras, enums, educ
       >
         <img
           ref={imgRef}
-          src={p.profilePicture?.file_url ? `${BASE_URL}${p.profilePicture.file_url}` : "/assets/defaultProfile.png"}
+          src={getImageUrl(p.profilePicture?.file_url)}
           alt={p.firstname}
           style={{
             display: "block",
@@ -317,9 +327,9 @@ function ShareCardLayout({ profile, enums, gothras, currentAddress, educationMap
   const gothraName = gothras.find(g => String(g.id) === String(profile.swagothra))?.gothraname
                      || profile.swagothranm?.gothraname
                      || null;
-  const photoUrl   = profile.profilePicture?.file_url
-                     ? `${BASE_URL}${profile.profilePicture.file_url}`
-                     : null;
+  const photoUrl = profile.profilePicture?.file_url
+    ? getImageUrl(profile.profilePicture.file_url)
+    : null;
 
   const birthStar = enums?.birthstar?.map?.[profile.birthstar] || null;
   const pada      = enums?.birthpada?.map?.[profile.starpada]  || null;
@@ -429,7 +439,7 @@ function useShareExport() {
     const currentAddress = addrs?.current || null;
 
     const photoUrl = profile.profilePicture?.file_url
-      ? `${BASE_URL}${profile.profilePicture.file_url}`
+      ? getImageUrl(profile.profilePicture.file_url)
       : null;
 
     if (photoUrl) {
@@ -674,7 +684,7 @@ export default function ProfilesSearch() {
           onClick={() => setPreviewIndex(i)}
         >
           <img
-            src={p.profilePicture?.file_url ? `${BASE_URL}${p.profilePicture.file_url}` : "/assets/defaultProfile.png"}
+            src={getImageUrl(p.profilePicture?.file_url)}
             alt={p.firstname}
             style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
           />
@@ -1372,7 +1382,7 @@ export default function ProfilesSearch() {
                   <tr className="ps-tr" key={p.id} style={{ animationDelay: `${i * 0.04}s` }}>
                     <td className="ps-td">
                       <img
-                        src={p.profilePicture?.file_url ? `${BASE_URL}${p.profilePicture.file_url}` : "/assets/defaultProfile.png"}
+                        src={getImageUrl(p.profilePicture?.file_url)}
                         alt={p.firstname} className="ps-table-avatar"
                         style={{ cursor: "pointer" }}
                         onClick={() => setPreviewIndex(i)}

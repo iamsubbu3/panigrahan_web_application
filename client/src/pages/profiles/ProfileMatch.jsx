@@ -5,6 +5,16 @@ import { loadFormEnums } from "../../logic/enumStore";
 import { shareProfile } from "../../api/profileMatchApi";
 import { BASE_URL, COMPANY } from "../../api/apiClient";
 
+const getImageUrl = (url) => {
+  if (!url) return "/placeholder-profile.png";
+
+  if (url.startsWith("http")) {
+    return url;
+  }
+
+  return `${BASE_URL}${url}`;
+};
+
 const CITY_QUESTION_ID = 5;
 
 /* ── Searchable city dropdown ── */
@@ -253,7 +263,7 @@ export default function ProfileMatch() {
     >
       <div style={{ position: "relative", aspectRatio: "3/4", background: "var(--bg-2)", overflow: "hidden" }}>
         <img
-          src={p.profilePicture?.file_url ? `${BASE_URL}${p.profilePicture.file_url}` : "/placeholder-profile.png"}
+          src={getImageUrl(p.profilePicture?.file_url)}
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform 420ms ease" }}
           onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.05)"; }}
           onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -376,7 +386,7 @@ export default function ProfileMatch() {
           boxShadow: "var(--shadow-xs)", animation: "fadeUp .4s var(--smooth) both"
         }}>
           <img
-            src={currentProfile.profilePicture?.file_url ? `${BASE_URL}${currentProfile.profilePicture.file_url}` : "/placeholder-profile.png"}
+            src={getImageUrl(currentProfile.profilePicture?.file_url)}
             style={{ width: "60px", height: "60px", borderRadius: "var(--r-sm)", objectFit: "cover", border: "2px solid var(--amber-ring)" }}
           />
           <div>
@@ -678,7 +688,7 @@ export default function ProfileMatch() {
                 </p>
               </Link>
               {previewProfiles[previewIndex]?.profilePicture != null && (
-                <img src={`${BASE_URL}${previewProfiles[previewIndex]?.profilePicture.file_url}`} alt="Preview" />
+                <img src={getImageUrl(previewProfiles[previewIndex]?.profilePicture.file_url)} alt="Preview" />
               )}
             </div>
             <div style={{ position: "absolute", bottom: "-52px", left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: "12px" }}>

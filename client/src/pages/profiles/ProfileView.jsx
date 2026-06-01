@@ -19,6 +19,16 @@ import { loadFormEnums } from "../../logic/enumStore";
 import EducationSection from "../../components/education/EducationSection";
 import { useAuth } from "../../auth/AuthContext";
 
+const getImageUrl = (url) => {
+  if (!url) return "/placeholder-profile.png";
+
+  if (url.startsWith("http")) {
+    return url;
+  }
+
+  return `${BASE_URL}${url}`;
+};
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PHOTO_SLOTS = [
   { key: "horoscope",        label: "Horoscope Photo",  required: false },
@@ -447,7 +457,7 @@ function ExportLayoutPhotos({ profile, profilePhotoUrl, allImages = [] }) {
             .filter(img => img.id !== profile.profilePictureId)
             .map(img => (
               <div key={img.id}>
-                <img src={`${BASE_URL}${img.file_url}`} alt={img.category || "photo"} crossOrigin="anonymous"
+                <img src={getImageUrl(img.file_url)} alt={img.category || "photo"} crossOrigin="anonymous"
                   style={{ width: "100%", aspectRatio: "3/4", objectFit: "cover", borderRadius: "6px", display: "block", border: `1px solid ${border}` }}
                 />
                 {img.category && (
@@ -532,7 +542,7 @@ export default function ProfileView() {
 
   const profilePhotoAttachment = images.find(img => isProfilePicture(img.id));
   const profilePhotoUrl = profilePhotoAttachment
-    ? `${BASE_URL}${profilePhotoAttachment.file_url}`
+    ? getImageUrl(profilePhotoAttachment.file_url)
     : null;
 
   const maritalStatusName = enums?.maritalsts?.map?.[String(profile?.maritalsts)]?.toLowerCase();
@@ -1042,7 +1052,7 @@ export default function ProfileView() {
                     style={{ aspectRatio: "4 / 5" }}
                     onClick={() => setPreviewIndex(index)}
                   >
-                    <img src={`${BASE_URL}${img.file_url}`} alt="Profile" />
+                    <img src={getImageUrl(img.file_url)} alt="Profile" />
                     {slotBadge && (
                       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: GRADIENT, pointerEvents: "none" }} />
                     )}
@@ -1452,7 +1462,7 @@ export default function ProfileView() {
                 style={{ overflow: "hidden", cursor: zoomed ? (dragging ? "grabbing" : "grab") : "zoom-in" }}
               >
                 <img
-                  src={`${BASE_URL}${sortedImages[previewIndex]?.file_url}`}
+                  src={getImageUrl(sortedImages[previewIndex]?.file_url)}
                   alt="Preview"
                   draggable={false}
                   onDoubleClick={handleImageDoubleClick}
