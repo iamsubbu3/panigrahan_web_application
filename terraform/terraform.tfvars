@@ -32,7 +32,7 @@ public_instance_ami_1              = "ami-05cf1e9f73fbad2e2"
 public_instance_type_1             = "t3.large"
 public_instance_key_pair_1         = "panigrahan-iamsubbu-keypair"
 public_instance_associate_ip_add_1 = true
-public_instance_volume_size_1      = 20
+public_instance_volume_size_1      = 25
 public_instance_volume_type_1      = "gp3"
 public_instance_name_1             = "Panigrahan-Server"
 
