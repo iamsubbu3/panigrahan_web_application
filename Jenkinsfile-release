@@ -423,7 +423,7 @@ Release Automation Pipeline
             )
 
             sh """
-                /home/ubuntu/jenkins_upload_release_info.sh \
+                /usr/local/bin/jenkins_upload_release_info.sh \
                 "${APP_VERSION}" \
                 "${BUILD_NUMBER}" \
                 "SUCCESS"
@@ -461,7 +461,7 @@ Release Automation Pipeline
             )
 
             sh """
-                /home/ubuntu/jenkins_upload_release_info.sh \
+                /usr/local/bin/jenkins_upload_release_info.sh \
                 "${APP_VERSION}" \
                 "${BUILD_NUMBER}" \
                 "FAILED"
@@ -477,7 +477,7 @@ Release Automation Pipeline
             script {
 
                 sh """
-                    /home/ubuntu/jenkins_upload_release_log.sh \
+                    /usr/local/bin/jenkins_upload_release_log.sh \
                     "${JOB_NAME}" \
                     "${BRANCH_NAME}" \
                     "${BUILD_NUMBER}"

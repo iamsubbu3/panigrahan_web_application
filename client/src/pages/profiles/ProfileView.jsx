@@ -730,7 +730,15 @@ export default function ProfileView() {
       quality:         0.98,
       pixelRatio:      3,
       backgroundColor: "#fffdf9",
-      style:           { transform: "scale(1)", transformOrigin: "top left" },
+      cacheBust: true,
+
+      imagePlaceholder:
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z6wAAAABJRU5ErkJggg==",
+
+      style: {
+        transform: "scale(1)",
+        transformOrigin: "top left",
+      },
     });
     hideEl(el);
     return dataUrl;
@@ -1052,7 +1060,11 @@ export default function ProfileView() {
                     style={{ aspectRatio: "4 / 5" }}
                     onClick={() => setPreviewIndex(index)}
                   >
-                    <img src={getImageUrl(img.file_url)} alt="Profile" />
+                    <img
+                      src={getImageUrl(img.file_url)}
+                      alt="Profile"
+                      crossOrigin="anonymous"
+                    />
                     {slotBadge && (
                       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: GRADIENT, pointerEvents: "none" }} />
                     )}
@@ -1463,6 +1475,7 @@ export default function ProfileView() {
               >
                 <img
                   src={getImageUrl(sortedImages[previewIndex]?.file_url)}
+                  crossOrigin="anonymous"
                   alt="Preview"
                   draggable={false}
                   onDoubleClick={handleImageDoubleClick}

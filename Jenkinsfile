@@ -837,7 +837,7 @@ DevSecOps Automation
             script {
 
                 sh """
-                    /home/ubuntu/jenkins_upload_build_log.sh \
+                    /usr/local/bin/jenkins_upload_build_log.sh \
                     "${JOB_NAME}" \
                     "${BUILD_NUMBER}"
                 """
