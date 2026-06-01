@@ -1,22 +1,50 @@
 const { Attachment } = require("../models");
 const { Profile } = require("../models");
-const { uploadsPublicPath } = require("../config/storage.config");
 
-exports.createMany = async (attachableType, attachableId, files, fileType = "image", photoType = null) => {
-  const rows = files.map(file => ({
-    attachable_type: attachableType,
-    attachable_id: attachableId,
-    file_type: fileType,
-    file_name: file.originalname,
-    file_url: `${uploadsPublicPath}/${file.filename}`,
-    mime_type: file.mimetype,
-    file_size: file.size,
-    category: photoType || null,  // store slot type (horoscope, profile_main, etc.)
-  }));
+const uploadToS3 = require("../utils/s3Upload");
 
-  const attached = await Attachment.bulkCreate(rows);
+exports.createMany = async (
+  attachableType,
+  attachableId,
+  files,
+  fileType = "image",
+  photoType = null
+) => {
 
+  // Upload all files to S3
+  const uploadedRows = await Promise.all(
+
+    files.map(async (file) => {
+
+      // Upload file to S3
+      const s3Url = await uploadToS3(file);
+
+      return {
+        attachable_type: attachableType,
+        attachable_id: attachableId,
+
+        file_type: fileType,
+
+        file_name: file.originalname,
+
+        // Store S3 URL instead of local path
+        file_url: s3Url,
+
+        mime_type: file.mimetype,
+
+        file_size: file.size,
+
+        category: photoType || null
+      };
+    })
+  );
+
+  // Save records into database
+  const attached = await Attachment.bulkCreate(uploadedRows);
+
+  // Update profile picture if needed
   if (photoType === "profile_main") {
+
     await Profile.update(
       { profilePictureId: attached[0].id },
       { where: { id: attachableId } }
@@ -26,7 +54,12 @@ exports.createMany = async (attachableType, attachableId, files, fileType = "ima
   return attached;
 };
 
-exports.findByAttachable = (attachableType, attachableId, fileType = null) => {
+exports.findByAttachable = (
+  attachableType,
+  attachableId,
+  fileType = null
+) => {
+
   const where = {
     attachable_type: attachableType,
     attachable_id: attachableId
@@ -40,7 +73,9 @@ exports.findByAttachable = (attachableType, attachableId, fileType = null) => {
 };
 
 exports.remove = async (id) => {
+
   const attachment = await Attachment.findByPk(id);
+
   if (!attachment) return null;
 
   const usedAsProfile = await Profile.findOne({
@@ -52,5 +87,6 @@ exports.remove = async (id) => {
   }
 
   await attachment.destroy();
+
   return attachment;
 };

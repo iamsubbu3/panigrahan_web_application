@@ -1,0 +1,119 @@
+livenessProbe:
+  enabled: false
+
+readinessProbe:
+  enabled: false
+
+env:
+  - name: AWS_ACCESS_KEY_ID
+    valueFrom:
+      secretKeyRef:
+        name: fluent-bit-s3-secret
+        key: aws_access_key_id
+
+  - name: AWS_SECRET_ACCESS_KEY
+    valueFrom:
+      secretKeyRef:
+        name: fluent-bit-s3-secret
+        key: aws_secret_access_key
+
+config:
+
+  service: |
+    [SERVICE]
+        Flush 10
+        Daemon Off
+        Log_Level info
+
+        HTTP_Server On
+        HTTP_Listen 0.0.0.0
+        HTTP_Port 2020
+
+        Health_Check On
+
+  inputs: |
+    [INPUT]
+        Name tail
+        Path /var/log/containers/*frontend*.log
+        Tag frontend.*
+        multiline.parser docker, cri
+        Mem_Buf_Limit 10MB
+        Skip_Long_Lines On
+
+    [INPUT]
+        Name tail
+        Path /var/log/containers/*backend*.log
+        Tag backend.*
+        multiline.parser docker, cri
+        Mem_Buf_Limit 10MB
+        Skip_Long_Lines On
+
+    [INPUT]
+        Name tail
+        Path /var/log/containers/mysql-0*.log
+        Tag mysql.*
+        multiline.parser docker, cri
+        Mem_Buf_Limit 10MB
+        Skip_Long_Lines On
+
+  filters: |
+    [FILTER]
+        Name kubernetes
+        Match *
+        Merge_Log On
+        Keep_Log On
+        K8S-Logging.Parser On
+        K8S-Logging.Exclude On
+
+    [FILTER]
+        Name grep
+        Match frontend
+        Exclude log kube-probe
+
+    [FILTER]
+        Name grep
+        Match frontend
+        Exclude log Blackbox-Exporter
+
+  outputs: |
+    [OUTPUT]
+        Name s3
+        Match frontend.*
+        bucket panigrahan-tf-and-logs-backup
+        region us-east-1
+        total_file_size 5M
+        upload_timeout 120s
+        use_put_object On
+        s3_key_format /logs/frontend/frontend-%Y%m%d-%H%M-$UUID.json
+        compression gzip
+
+    [OUTPUT]
+        Name s3
+        Match backend.*
+        bucket panigrahan-tf-and-logs-backup
+        region us-east-1
+        total_file_size 5M
+        upload_timeout 30s
+        use_put_object On
+        s3_key_format /logs/backend/backend-%Y%m%d-%H%M-$UUID.json
+        compression gzip
+
+    [OUTPUT]
+        Name s3
+        Match mysql.*
+        bucket panigrahan-tf-and-logs-backup
+        region us-east-1
+        total_file_size 5M
+        upload_timeout 30s
+        use_put_object On
+        s3_key_format /logs/mysql/mysql-%Y%m%d-%H%M-$UUID.json
+        compression gzip
+
+daemonSetVolumes:
+  - name: varlog
+    hostPath:
+      path: /var/log
+
+daemonSetVolumeMounts:
+  - name: varlog
+    mountPath: /var/log

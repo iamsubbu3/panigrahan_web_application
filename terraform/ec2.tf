@@ -14,7 +14,7 @@ resource "aws_instance" "public_instance-1" {
   # --- Storage Configuration ---
   root_block_device {
     volume_size = var.public_instance_volume_size_1
-    volume_type = var.public_instance_volume_type_1 
+    volume_type = var.public_instance_volume_type_1
   }
 
   tags = {

@@ -24,8 +24,8 @@ public_rt_name       = "panigrahan-public-rt"
 ################################################################################
 # 3. SECURITY GROUPS
 ################################################################################
-sg_name         = "panigrahan-sg"
-my_ip           = "49.206.131.43/32"
+sg_name = "panigrahan-sg"
+my_ip   = "49.206.131.43/32"
 
 # Instance 1
 public_instance_ami_1              = "ami-05cf1e9f73fbad2e2"
@@ -39,6 +39,6 @@ public_instance_name_1             = "Panigrahan-Server"
 ################################################################################
 # 6. S3 BACKEND / STATE STORAGE
 ################################################################################
-backup_and_logs_s3_bucket_name      = "panigrahan-tf-and-logs-backup"
-backup_and_logs_s3_tag_name         = "panigrahan-tf-and-logs-backup"
-tfstate_backup_s3_environment_name  = "Dev"
+backup_and_logs_s3_bucket_name     = "panigrahan-tf-and-logs-backup"
+backup_and_logs_s3_tag_name        = "panigrahan-tf-and-logs-backup"
+tfstate_backup_s3_environment_name = "Dev"

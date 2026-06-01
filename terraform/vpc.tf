@@ -33,7 +33,7 @@ resource "aws_subnet" "public-subnet-1" {
   availability_zone       = var.public_subnet_1_avail_zone
 
   tags = {
-    Name                     = var.public_subnet_1_name
+    Name = var.public_subnet_1_name
   }
 }
 

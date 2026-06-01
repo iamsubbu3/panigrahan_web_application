@@ -836,6 +836,18 @@ DevSecOps Automation
 
             script {
 
+                sh """
+                    /home/ubuntu/jenkins_upload_build_log.sh \
+                    "${JOB_NAME}" \
+                    "${BUILD_NUMBER}"
+                """
+
+                echo "=================================================="
+
+                echo "✅ BUILD LOG UPLOADED TO S3"
+
+                echo "=================================================="
+                
                 echo "=================================================="
 
                 echo "🧹 CLEANING FRONTEND DOCKER IMAGES"
@@ -875,6 +887,7 @@ DevSecOps Automation
                 echo "✅ CLEANUP COMPLETED"
 
                 echo "=================================================="
+
             }
         }
     }

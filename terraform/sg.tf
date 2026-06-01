@@ -17,8 +17,8 @@ resource "aws_security_group" "sg" {
   ################################################################################
 
   # --- Administrative Access ---
-  
-   # SSH from your laptop
+
+  # SSH from your laptop
   ingress {
     description = "SSH from Admin IP / Mates IP"
     from_port   = 22

@@ -7,7 +7,7 @@ resource "aws_s3_bucket" "s3" {
   bucket = var.backup_and_logs_s3_bucket_name
 
   # Allows the bucket to be deleted even if it contains state files
-  force_destroy = true 
+  force_destroy = true
 
   tags = {
     Name        = var.backup_and_logs_s3_tag_name
@@ -24,6 +24,7 @@ resource "aws_s3_bucket" "s3" {
 
 resource "aws_s3_bucket_versioning" "s3_versioning" {
   bucket = aws_s3_bucket.s3.id
+
   versioning_configuration {
     status = "Enabled"
   }
@@ -32,7 +33,6 @@ resource "aws_s3_bucket_versioning" "s3_versioning" {
 /* BLOCK PUBLIC ACCESS */
 
 resource "aws_s3_bucket_public_access_block" "s3_block" {
-
   bucket = aws_s3_bucket.s3.id
 
   block_public_acls       = true
@@ -44,13 +44,10 @@ resource "aws_s3_bucket_public_access_block" "s3_block" {
 /* SERVER SIDE ENCRYPTION */
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "s3_encryption" {
-
   bucket = aws_s3_bucket.s3.id
 
   rule {
-
     apply_server_side_encryption_by_default {
-
       sse_algorithm = "AES256"
     }
   }
@@ -59,7 +56,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "s3_encryption" {
 /* LIFECYCLE POLICY */
 
 resource "aws_s3_bucket_lifecycle_configuration" "s3_lifecycle" {
-
   bucket = aws_s3_bucket.s3.id
 
   ##################################################
@@ -67,40 +63,54 @@ resource "aws_s3_bucket_lifecycle_configuration" "s3_lifecycle" {
   ##################################################
 
   rule {
-
-    id     = "production-log-cleanup"
-
+    id     = "app-log-cleanup"
     status = "Enabled"
 
     filter {
-
-      prefix = "production-logs/"
+      prefix = "logs/frontend/"
     }
 
     expiration {
-
       days = 30
     }
   }
 
-  ##################################################
-  # JENKINS LOGS
-  ##################################################
-
   rule {
-
-    id     = "jenkins-log-cleanup"
-
+    id     = "backend-log-cleanup"
     status = "Enabled"
 
     filter {
-
-      prefix = "jenkins-logs/"
+      prefix = "logs/backend/"
     }
 
     expiration {
+      days = 30
+    }
+  }
 
-      days = 15
+  rule {
+    id     = "mysql-log-cleanup"
+    status = "Enabled"
+
+    filter {
+      prefix = "logs/mysql/"
+    }
+
+    expiration {
+      days = 30
+    }
+  }
+
+  rule {
+    id     = "jenkins-build-log-cleanup"
+    status = "Enabled"
+
+    filter {
+      prefix = "logs/jenkins-builds/"
+    }
+
+    expiration {
+      days = 30
     }
   }
 
@@ -109,19 +119,15 @@ resource "aws_s3_bucket_lifecycle_configuration" "s3_lifecycle" {
   ##################################################
 
   rule {
-
     id     = "jenkins-backup-cleanup"
-
     status = "Enabled"
 
     filter {
-
       prefix = "jenkins-backups/"
     }
 
     expiration {
-
-      days = 90
+      days = 30
     }
   }
 }

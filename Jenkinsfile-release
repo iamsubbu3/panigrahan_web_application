@@ -422,6 +422,15 @@ Release Automation Pipeline
                 to: "${NOTIFY_EMAIL}"
             )
 
+            sh """
+                /home/ubuntu/jenkins_upload_release_info.sh \
+                "${APP_VERSION}" \
+                "${BUILD_NUMBER}" \
+                "SUCCESS"
+            """
+
+            echo "✅ RELEASE INFO UPLOADED TO S3"
+            
             echo "✅ RELEASE SUCCESS EMAIL SENT"
         }
 
@@ -451,6 +460,15 @@ Release Automation Pipeline
                 to: "${NOTIFY_EMAIL}"
             )
 
+            sh """
+                /home/ubuntu/jenkins_upload_release_info.sh \
+                "${APP_VERSION}" \
+                "${BUILD_NUMBER}" \
+                "FAILED"
+            """
+
+            echo "❌ RELEASE INFO UPLOADED TO S3"
+            
             echo "❌ RELEASE FAILURE EMAIL SENT"
         }
 
@@ -458,6 +476,19 @@ Release Automation Pipeline
 
             script {
 
+                sh """
+                    /home/ubuntu/jenkins_upload_release_log.sh \
+                    "${JOB_NAME}" \
+                    "${BRANCH_NAME}" \
+                    "${BUILD_NUMBER}"
+                """
+
+                echo "=================================================="
+
+                echo "✅ BUILD LOG UPLOADED TO S3"
+
+                echo "=================================================="
+                
                 echo "=================================================="
 
                 echo "🧹 CLEANING FRONTEND DOCKER IMAGES"

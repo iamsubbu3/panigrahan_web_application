@@ -28,7 +28,8 @@ COPY package*.json ./
 # INSTALL ONLY PRODUCTION DEPENDENCIES
 # =========================================================
 
-RUN npm install --omit=dev
+RUN npm install --omit=dev && \
+    npm install @aws-sdk/client-s3
 
 # =========================================================
 # COPY SOURCE CODE
