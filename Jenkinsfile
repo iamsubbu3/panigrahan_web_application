@@ -607,8 +607,6 @@ pipeline {
 
                             kubectl apply -f backend-secret.yaml
 
-                            kubectl apply -f uploads-pvc.yaml
-
                             kubectl apply -f backend-deployment.yaml
 
                             kubectl apply -f backend-hpa.yaml
