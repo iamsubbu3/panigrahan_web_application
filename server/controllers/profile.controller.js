@@ -4,15 +4,22 @@ const planService    = require("../services/plan.service");
 const { Attachment } = require("../models");
 
 exports.create = async (req, res) => {
-  try {
-    const result = await profileService.create(req.body, req.user.id, req.user.orgid);
+  try { 
+    const { familyMembers, ...profileData } = req.body;
 
-    //  handle validation response
-    if (result?.field) {
-      return res.status(400).json(result);
+    console.log(req.body);
+
+    const profile = await profileService.create(
+      req.body,
+      req.user.id,
+      req.user.orgid
+    );
+
+    if (profile?.field) {
+      return res.status(400).json(profile);
     }
 
-    res.status(201).json(result);
+    res.status(201).json(profile);
 
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -79,7 +86,7 @@ exports.search = async (req, res) => {
   const filters     = { ...req.body, orgid: req.user.orgid };
   const includePlan = req.query.includeplan === "true";
   const page        = Math.max(1, parseInt(req.query.page)  || 1);
-  const limit       = Math.min(50, parseInt(req.query.limit) || 14);
+  const limit       = Math.min(50, parseInt(req.query.limit) || 15);
   const result      = await profileService.searchWithMatchCount(filters, includePlan, page, limit);
   res.json(result);
 };
@@ -93,10 +100,10 @@ exports.setProfilePicture = async (req, res) => {
 
 exports.assignPlan = async (req, res) => {
   try {
-    const { subscription_name } = req.body;
+    const { subscription_name, plan_start } = req.body;
     if (!subscription_name)
       return res.status(400).json({ success: false, message: "subscription_name is required" });
-    const plan = await planService.assignPlan(req.params.id, subscription_name, req.user?.id);
+    const plan = await planService.assignPlan(req.params.id, subscription_name, req.user?.id, plan_start);
     res.json({
       success: true,
       plan_start:        plan.plan_start,

@@ -3,6 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { createProfile, getProfile, updateProfile } from "../../logic/profiles.logic";
 import { getGothras, createGothra, updateGothra } from "../../logic/gothras.logic";
 import { loadFormEnums } from "../../logic/enumStore";
+import FamilyList from "../../components/family/FamilyList";
+import FamilyForm from "../../components/family/FamilyForm";
+import { getFamily, addFamily, updateFamily, deleteFamily } from "../../logic/family.logic";
 // import EducationSection from "../../components/education/EducationSection";
 
 // ─── Height helpers ───────────────────────────────────────────────────────────
@@ -148,6 +151,30 @@ export default function ProfileForm() {
   const [showAddGothra,  setShowAddGothra]  = useState(false);
   const [newGothra,      setNewGothra]      = useState({ gothraname: "", gothrarushi: "", gothranum: "", aliases: "" });
   const [savingGothra,   setSavingGothra]   = useState(false);
+  const createFamilyMember = (relationtype) => ({
+    relationtype,
+    firstname: "",
+    lastname: "",
+    surname: "",
+    occtype: null,
+    occname: "",
+    maritalsts: null,
+    livingstatus: null,
+    gender: null,
+    cellphone: "",
+    homephone: "",
+    otherphone: "",
+    emailaddress: "",
+    placeoforigin: ""
+  });
+
+  const [familyMembers, setFamilyMembers] = useState([
+    createFamilyMember(1),
+    createFamilyMember(2)
+  ]);
+
+  console.log(familyMembers);
+  
 
   useEffect(() => {
     loadFormEnums("profile").then(setEnums).catch(() => setEnums({}));
@@ -162,12 +189,47 @@ export default function ProfileForm() {
 
     if (!isEdit) return;
     setLoading(true);
-    getProfile(id).then((data) => {
-      setForm((prev) => ({ ...prev, ...data }));
-      setProfileStatus(data.profilests);
+    Promise.all([
+      getProfile(id),
+      getFamily(id),
+    ])
+    .then(([profileData, familyMembersData]) =>  {
+      setForm((prev) => ({ ...prev, ...profileData }));
+      setProfileStatus(profileData.profilests);
+      if (familyMembersData?.length) {
+        const father =
+          familyMembersData?.find(f => Number(f.relationtype) === 1);
+
+        const mother =
+          familyMembersData?.find(f => Number(f.relationtype) === 2);
+
+        setFamilyMembers([
+          father || createFamilyMember(1),
+          mother || createFamilyMember(2)
+        ]);
+      }
       setLoading(false);
     });
   }, [id]);
+
+  
+    //maritalsts
+    if (name === "maritalsts") {
+    const selectedStatus = enums?.maritalsts?.options?.find(
+      o => String(o.enumvalue) === String(value)
+    )?.strvalue?.toLowerCase();
+
+    setForm(prev => ({
+      ...prev,
+      maritalsts: value,
+      childrencount:
+        selectedStatus === "divorced" || selectedStatus === "widow"
+          ? prev.childrencount
+          : null
+    }));
+
+    return;
+  }
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -182,6 +244,18 @@ export default function ProfileForm() {
       setSelectedMamaGothra(g);
     }
 
+    
+  const updateFamilyMember = (index, field, value) => {
+    const updated = [...familyMembers];
+
+    updated[index] = {
+      ...updated[index],
+      [field]: value
+    };
+
+    // console.log(updated);
+    setFamilyMembers(updated);
+  };
   };
 
   const submit = async (e) => {
@@ -193,9 +267,16 @@ export default function ProfileForm() {
         if (form.birthstar == "") form.birthstar = null;
         if (form.starpada == "") form.starpada = null;
         await updateProfile(id, form);
+        await updateProfile(id, {...form, familyMembers});
         navigate(`/profiles/${id}`);
       } else {
-        const created = await createProfile(form);
+
+        const payload = {
+          ...form,
+          familyMembers
+        };
+
+        const created = await createProfile(payload);
         navigate(`/profiles/${created.id}`);
       }
     } catch (err) {
@@ -635,6 +716,196 @@ export default function ProfileForm() {
                 ) : (
                   <input className="pf-input" name={f.name} placeholder={f.placeholder} value={form[f.name] || ""} onChange={onChange}/>
                 )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        
+        
+
+        <div className="pf-card">
+          <div className="pf-card-header">
+            <h2 className="pf-card-title">Family Members</h2>
+            <p className="pf-card-sub">Details of family members</p>
+          </div>
+
+          <div className="pf-grid">
+            {familyMembers.map((member, index) => (
+              <div
+                key={member.relationtype}
+                style={{
+                  gridColumn: "1 / -1",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--r-sm)",
+                  padding: "16px",
+                  marginBottom: "12px",
+                  background: "var(--bg)"
+                }}
+              >
+                <h4
+                  style={{
+                    marginBottom: "14px",
+                    color: "var(--amber)",
+                    fontSize: "14px",
+                    fontWeight: 600
+                  }}
+                >
+                  {member.relationtype === 1 ? "Father Details" : "Mother Details"}
+                </h4>
+
+                <div className="pf-grid">
+                  <input type="hidden" name={`familyMembers[${index}].relationtype`} value={member.id} />
+                  <div className="pf-field">
+                    <label className="pf-label">First Name</label>
+                    <input
+                      className="pf-input"
+                      value={member.firstname || ""}
+                      onChange={(e) =>
+                        updateFamilyMember(index, "firstname", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="pf-field">
+                    <label className="pf-label">Last Name</label>
+                    <input
+                      className="pf-input"
+                      value={member.lastname || ""}
+                      onChange={(e) =>
+                        updateFamilyMember(index, "lastname", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="pf-field">
+                    <label className="pf-label">Family Name</label>
+                    <input
+                      className="pf-input"
+                      value={member.surname || ""}
+                      onChange={(e) =>
+                        updateFamilyMember(index, "surname", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="pf-field">
+                    <label className="pf-label">Gender</label>
+                    <select
+                      className="pf-input pf-select"
+                      value={member.gender || ""}
+                      onChange={(e) =>
+                        updateFamilyMember(index, "gender", e.target.value)
+                      }
+                    >
+                      <option value="">Select Gender</option>
+                      {enums?.gender?.options?.map(g => (
+                        <option key={g.enumvalue} value={g.enumvalue}>
+                          {g.strvalue}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="pf-field">
+                    <label className="pf-label">Occupation Type</label>
+                    <select
+                      className="pf-input pf-select"
+                      value={member.occtype || ""}
+                      onChange={(e) =>
+                        updateFamilyMember(index, "occtype", e.target.value)
+                      }
+                    >
+                      <option value="">Select Occupation</option>
+                      {enums?.occtype?.options?.map(o => (
+                        <option key={o.enumvalue} value={o.enumvalue}>
+                          {o.strvalue}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="pf-field">
+                    <label className="pf-label">Occupation Name</label>
+                    <input
+                      className="pf-input"
+                      value={member.occname || ""}
+                      onChange={(e) =>
+                        updateFamilyMember(index, "occname", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="pf-field">
+                    <label className="pf-label">Marital Status</label>
+                    <select
+                      className="pf-input pf-select"
+                      value={member.maritalsts || ""}
+                      onChange={(e) =>
+                        updateFamilyMember(index, "maritalsts", e.target.value)
+                      }
+                    >
+                      <option value="">Select Status</option>
+                      {enums?.maritalsts?.options?.map(o => (
+                        <option key={o.enumvalue} value={o.enumvalue}>
+                          {o.strvalue}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="pf-field">
+                    <label className="pf-label">Living Status</label>
+                    <select
+                      className="pf-input pf-select"
+                      value={member.livingstatus || ""}
+                      onChange={(e) =>
+                        updateFamilyMember(index, "livingstatus", e.target.value)
+                      }
+                    >
+                      <option value="">Select Living Status</option>
+                      {enums?.livingstatus?.options?.map(o => (
+                        <option key={o.enumvalue} value={o.enumvalue}>
+                          {o.strvalue}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="pf-field">
+                    <label className="pf-label">Cell Phone</label>
+                    <input
+                      className="pf-input"
+                      value={member.cellphone || ""}
+                      onChange={(e) =>
+                        updateFamilyMember(index, "cellphone", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="pf-field">
+                    <label className="pf-label">Email</label>
+                    <input
+                      className="pf-input"
+                      value={member.emailaddress || ""}
+                      onChange={(e) =>
+                        updateFamilyMember(index, "emailaddress", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="pf-field">
+                    <label className="pf-label">Place Of Origin</label>
+                    <input
+                      className="pf-input"
+                      value={member.placeoforigin || ""}
+                      onChange={(e) =>
+                        updateFamilyMember(index, "placeoforigin", e.target.value)
+                      }
+                    />
+                  </div>
+
+                </div>
               </div>
             ))}
           </div>

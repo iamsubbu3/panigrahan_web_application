@@ -165,7 +165,7 @@ function LivingWithParentsCheckbox({ checked, onChange }) {
       />
       <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
         <span style={{ fontSize: "13px", fontWeight: 600, color: checked ? "#5d8ac4" : "var(--ink-3)" }}>
-          Living with parents (same address as family)
+         Living with parents (same address applicable for family-Members)
         </span>
         <span style={{ fontSize: "11px", color: "var(--ink-4)", fontWeight: 400 }}>
           Family member's address will be updated to match this address on save

@@ -143,7 +143,7 @@ const calculateAge = (birthdate) => {
 };
 
 // ─── Export Layout — Details page ─────────────────────────────────────────────
-function ExportLayoutDetails({ profile, enums, family, familyAddresses, profilePhotoUrl, profileAddress, education, occupation, parentOccupations }) {
+function ExportLayoutDetails({ profile, enums, family, familyAddresses, profilePhotoUrl, profileAddress, education, occupation }) {
   if (!profile || !enums) return null;
 
   const amber      = "#c97d10";
@@ -333,13 +333,24 @@ function ExportLayoutDetails({ profile, enums, family, familyAddresses, profileP
                     <div style={{ fontSize: "12px", fontWeight: 700, color: ink2 }}>{name}</div>
                     <div style={{ fontSize: "9px", color: Number(m.livingstatus) === 2 ? "#999" : "#2a7a4f", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em" }}>{status}</div>
                   </div>
-                  {(() => {
+                  {/* {(() => {
                     const occs = parentOccupations?.[m.id];
                     if (!occs || !occs.length) return null;
                     const o = occs[0];
                     const occStr = [o.occname, o.compname].filter(Boolean).join(", ");
                     return occStr ? <div style={{ fontSize: "10px", color: ink3, marginTop: "2px" }}>{occStr}</div> : null;
-                  })()}
+                  })()} */}
+                  {(m.occname || m.occtype) && (
+                    <div
+                      style={{
+                        fontSize: "10px",
+                        color: ink3,
+                        marginTop: "2px"
+                      }}
+                    >
+                      {m.occname}{m.occtype ? ` — ${enums?.occtype?.map?.[m.occtype]}` : null}
+                    </div>
+                  )}
                   {addr && <div style={{ fontSize: "10px", color: ink3 }}>{addr}</div>}
                 </div>
               );
@@ -457,8 +468,9 @@ function ExportLayoutPhotos({ profile, profilePhotoUrl, allImages = [] }) {
             .filter(img => img.id !== profile.profilePictureId)
             .map(img => (
               <div key={img.id}>
-                <img src={getImageUrl(img.file_url)} alt={img.category || "photo"} crossOrigin="anonymous"
-                  style={{ width: "100%", aspectRatio: "3/4", objectFit: "cover", borderRadius: "6px", display: "block", border: `1px solid ${border}` }}
+                <img src={`${BASE_URL}${img.file_url}`} alt={img.category || "photo"} crossOrigin="anonymous" style={{ width: "100%", aspectRatio: img.category === "horoscope" ? "1 / 1" : "3 / 4",
+                    objectFit: img.category === "horoscope" ? "contain" : "cover",
+                    background: img.category === "horoscope" ? "#f5f5f5" : "transparent", borderRadius: "6px", display: "block", border: `1px solid ${border}` }}
                 />
                 {img.category && (
                   <div style={{ fontSize: "11px", color: ink3, textAlign: "center", marginTop: "6px", textTransform: "capitalize" }}>
@@ -481,7 +493,7 @@ function ExportLayoutPhotos({ profile, profilePhotoUrl, allImages = [] }) {
           Contact for more details — Venkatesh Babu (S/O Arjunaiah)
         </div>
         <div style={{ fontSize: "13px", fontWeight: 600, color: ink2 }}>
-          Mob: 9844085118
+           Mob: 9844085118, 900848474", Email:- "avkvkhoro@gmail.com"
         </div>
       </div>
     </div>
@@ -518,7 +530,8 @@ export default function ProfileView() {
   const [profileAddress, setProfileAddress] = useState(null);
   const [education,      setEducation]      = useState([]);
   const [occupation,     setOccupation]     = useState([]);
-  const [parentOccupations, setParentOccupations] = useState({});
+  const [planStartDate, setPlanStartDate] = useState("");
+  // const [parentOccupations, setParentOccupations] = useState({});
 
   const dragStart       = useRef({ mx: 0, my: 0, px: 0, py: 0 });
   const exportRef       = useRef();
@@ -567,22 +580,17 @@ export default function ProfileView() {
 
   useEffect(() => {
     if (!profile?.id || !enums) return;
+
     getFamily(profile.id).then(async (rows) => {
       const mapped = rows && Array.isArray(rows)
-        ? rows.map(r => ({ ...r, relationLabel: enums?.relationtype?.map?.[r.relationtype] }))
+        ? rows.map(r => ({
+            ...r,
+            relationLabel: enums?.relationtype?.map?.[r.relationtype]
+          }))
         : [];
+
       setFamily(mapped);
       loadFamilyAddresses(rows);
-      const parents = mapped.filter(m => Number(m.relationtype) === 1 || Number(m.relationtype) === 2);
-      if (parents.length) {
-        const entries = await Promise.all(
-          parents.map(async (p) => {
-            const occ = await getOccupation("family", p.id);
-            return [p.id, Array.isArray(occ) ? occ : []];
-          })
-        );
-        setParentOccupations(Object.fromEntries(entries));
-      }
     });
   }, [profile?.id, enums]);
 
@@ -952,7 +960,7 @@ export default function ProfileView() {
     }
     setPlanSaving(true);
     try {
-      const res = await assignPlan(id, selectedPlan);
+      const res = await assignPlan(id, selectedPlan, planStartDate);
       if (res.success) await refreshPlanData();
       else alert("Failed to assign plan");
     } catch { alert("Failed to assign plan"); }
@@ -1028,7 +1036,7 @@ export default function ProfileView() {
           profileAddress={profileAddress}
           education={education}
           occupation={occupation}
-          parentOccupations={parentOccupations}
+          // parentOccupations={parentOccupations}
         />
       </div>
 
@@ -1358,6 +1366,13 @@ export default function ProfileView() {
                         <option key={p.name} value={p.name}>{p.label} — {p.duration}</option>
                       ))}
                     </select>
+                  </div>
+                  <div>
+                    <label
+                      style={{ fontSize: "12px", color: "var(--ink-3)", display: "block", marginBottom: "6px" }} >
+                      Plan Start Date
+                    </label>
+                    <input type="date" className="pf-input" value={planStartDate} onChange={(e) => setPlanStartDate(e.target.value)} />
                   </div>
                   <button type="button" className="ps-search-btn" onClick={handleAssignPlan} disabled={planSaving}>
                     {planSaving ? "Assigning..." : "Assign Plan"}

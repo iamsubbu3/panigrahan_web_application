@@ -46,11 +46,13 @@ exports.getPlanHistory = (profileid) => {
 };
 
 /* ── Assign a new plan by subscription name — always starts as unpaid ── */
-exports.assignPlan = async (profileid, subscriptionName, createdBy) => {
+exports.assignPlan = async (profileid, subscriptionName, createdBy, planStart) => {
   const pkg = SUBSCRIPTION_PLANS[subscriptionName?.toLowerCase()];
   if (!pkg) throw new Error(`Invalid subscription: ${subscriptionName}. Must be bronze, silver, gold or diamond.`);
 
-  const startDate  = new Date();
+  const startDate = planStart
+  ? new Date(planStart)
+  : new Date();
   const planExpiry = calculateExpiry(startDate, pkg.years);
 
   const plan = await ProfilePlan.create({

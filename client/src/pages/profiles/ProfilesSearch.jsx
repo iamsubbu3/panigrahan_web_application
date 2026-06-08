@@ -183,6 +183,8 @@ function PhotoModal({ profiles, index, onClose, onNavigate, gothras, enums, educ
                           o => String(o.enumvalue) === String(p.birthstar)
                         )?.strvalue || null;
 
+  const occupation = p.occupations?.[0];
+
   return (
     <div
       onClick={() => { if (zoomed) setZoomed(false); else onClose(); }}
@@ -233,6 +235,11 @@ function PhotoModal({ profiles, index, onClose, onNavigate, gothras, enums, educ
             {[birthstarName, enums?.birthrasi?.map?.[p.birthrasi]].filter(Boolean).join(" · ")}
           </p>
         )}
+        <p style={{ margin: "0 0 3px", fontSize: "13px", color: "rgba(255,255,255,0.75)" }}>
+          {occupation
+            ? `${occupation.occname} · ${enums?.occtype?.map?.[String(occupation.occtype)] || occupation.occtype}`
+            : "—"}
+        </p>
       </Link>
 
       <div
@@ -342,13 +349,15 @@ function ShareCardLayout({ profile, enums, gothras, currentAddress, educationMap
     ? eduRows.map(e => e.degree).filter(Boolean).join(", ")
     : [profile.education1, profile.education2].filter(Boolean).join(", ");
   const cityCountry = [currentAddress?.city, currentAddress?.country].filter(Boolean).join(", ");
+  const occupation = profile.occupations?.[0];
 
   const details = [
     { label: "Birth Star / Pada",  value: starStr    },
     { label: "Rashi",       value: rashi      },
     { label: "Swagothram",  value: gothraName },
     { label: "Education",   value: eduStr || null },
-    { label: "Occupation",  value: profile.occtype ? enums?.occtype?.map?.[String(profile.occtype)] : null },
+    { label: "Occupation", value: occupation?.occname || null },
+    { label: "Working Status", value: occupation?.occtype ? enums?.occtype?.map?.[String(occupation.occtype)] : null},
   ].filter(d => d.value);
 
   return (
@@ -404,7 +413,7 @@ function ShareCardLayout({ profile, enums, gothras, currentAddress, educationMap
           <div style={{ fontSize: 8, color: "rgba(255,255,255,0.55)", display: "flex", gap: "10px" }}>
             <span>Venkatesh Babu (s/o Arjunaiah)</span>
             <span>·</span>
-            <span>Mob: 9844085118</span>
+            <span>Mob: 9844085118, 9008484741</span>
           </div>
         </div>
       </div>
@@ -725,6 +734,13 @@ export default function ProfilesSearch() {
                 ? educationMap[p.id].map(e => e.degree).filter(Boolean).join(" · ")
                 : "—"}
             </p>
+            <p style={{ margin: "0 0 2px", fontSize: "11px", color: "rgba(255,255,255,0.82)", lineHeight: 1.3 }}>
+              Working Status: {
+                p.occupations?.[0]
+                  ? `${p.occupations[0].occname} (${enums?.occtype?.map?.[String(p.occupations[0].occtype)] || p.occupations[0].occtype})`
+                  : "—"
+              }
+              </p>
           </div>
         </div>
 

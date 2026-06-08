@@ -86,29 +86,29 @@ resource "aws_security_group" "sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    description = "Alertmanager traffic"
-    from_port   = 30093
-    to_port     = 30093
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # ingress {
+  #   description = "Alertmanager traffic"
+  #   from_port   = 30093
+  #   to_port     = 30093
+  #   protocol    = "tcp"
+  #   cidr_blocks = ["0.0.0.0/0"]
+  # }
 
-  ingress {
-    description = "Panigrahan NodePort Frontend Traffic Port"
-    from_port   = 30080
-    to_port     = 30080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # ingress {
+  #   description = "Panigrahan NodePort Frontend Traffic Port"
+  #   from_port   = 30080
+  #   to_port     = 30080
+  #   protocol    = "tcp"
+  #   cidr_blocks = ["0.0.0.0/0"]
+  # }
 
-  ingress {
-    description = "Panigrahan NodePort Backend Traffic Port"
-    from_port   = 30081
-    to_port     = 30081
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # ingress {
+  #   description = "Panigrahan NodePort Backend Traffic Port"
+  #   from_port   = 30081
+  #   to_port     = 30081
+  #   protocol    = "tcp"
+  #   cidr_blocks = ["0.0.0.0/0"]
+  # }
 
   ################################################################################
   # 3. OUTBOUND RULES (EGRESS)

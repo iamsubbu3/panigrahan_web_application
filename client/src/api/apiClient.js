@@ -6,12 +6,13 @@ export default API_BASE;
 export const COMPANY = {
   name:     "Arjunaiah Venkatesh Matrimony",
   subtitle: "Aryavysya Varanveshna Kendra",
-  city:     "Bengaluru · 560002",
+  city:     "Bengaluru · 560004",
   cta:      "Contact us for more details",
-  address:  "78/3, Sanjeevappa Lane, Avenue Road Cross, Avenue Rd,",
-  address2: "opp. Rice Memorial Church, Bengaluru, Karnataka 560002",
+  address:  "#2/2, Near Vasavi Convention Centre,",
+  address2: "Opp. Bank of Baroda, Basavanagudi,Karnataka, Bengaluru - 560 004",
   contact:  "Venkatesh Babu (s/o Arjunaiah)",
-  phone:    "9844085118",
+  phone:    "9844085118, 900848474",
+  Email:    "avkvkhoro@gmail.com"
 }; 
 
 export const api = async (url, options = {}) => {

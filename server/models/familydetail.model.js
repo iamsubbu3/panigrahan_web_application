@@ -1,5 +1,10 @@
 module.exports = (sequelize, DataTypes) => {
   const FamilyDetail = sequelize.define("FamilyDetail", {
+    id: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      primaryKey: true,
+      autoIncrement: true
+    },
     firstname: DataTypes.STRING,
     lastname: DataTypes.STRING,
     relationtype: DataTypes.INTEGER,
@@ -27,6 +32,7 @@ module.exports = (sequelize, DataTypes) => {
     emailaddress: DataTypes.STRING(100),
     placeoforigin: DataTypes.STRING(50),
     occtype: DataTypes.TINYINT.UNSIGNED,
+    occname: DataTypes.STRING(100),
   },
   {
     tableName: "familydetails",

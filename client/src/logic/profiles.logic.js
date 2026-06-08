@@ -44,10 +44,10 @@ export const setProfilePicture = async (id, attachmentId) => {
   }
 };
 
-export const assignPlan = (id, subscriptionName) =>
+export const assignPlan = (id, subscriptionName, planStartDate) =>
   api(`/profiles/${id}/plan`, {
     method: "POST",
-    body: JSON.stringify({ subscription_name: subscriptionName })
+    body: JSON.stringify({ subscription_name: subscriptionName, plan_start: planStartDate })
   });
 
 export const confirmPayment = (id) =>

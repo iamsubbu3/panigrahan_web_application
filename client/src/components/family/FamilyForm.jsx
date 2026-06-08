@@ -69,6 +69,7 @@ export default function FamilyForm({ value, enums, onSave, onCancel }) {
       relationtype: null,
       surname: "",
       occtype: null,
+      occname: "",
       maritalsts: null,
       livingstatus: null,
       gender: null,
@@ -186,6 +187,15 @@ export default function FamilyForm({ value, enums, onSave, onCancel }) {
               </option>
             ))}
           </select>
+        </FormField>
+
+        <FormField label="Occupation Name">
+          <StyledInput
+            name="occname"
+            value={form.occname}
+            onChange={onChange}
+            placeholder="Occupation name"
+          />
         </FormField>
 
         {/* Status */}
