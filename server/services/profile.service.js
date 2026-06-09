@@ -1,4 +1,4 @@
-const { Profile, ProfileMatch, ProfilePlan, Attachment, gothras, Sequelize, User } = require("../models");
+const { Profile, ProfileMatch, ProfilePlan, Attachment, Occupation, gothras, Sequelize, User } = require("../models");
 const bcrypt = require("bcrypt");
 const { Op } = Sequelize;
 const sanitize = (val) => String(val).replace(/'/g, "''");
@@ -381,6 +381,47 @@ exports.searchWithMatchCount = async (filters, includePlan = false, page = 1, li
     offset,
     subQuery: false
   });
+
+  // Load occupations separately to avoid ONLY_FULL_GROUP_BY issues
+  const profileIds = profiles.map(p => p.id);
+
+    if (profileIds.length > 0) {
+
+      const occupations = await Occupation.findAll({
+        where: {
+          parenttype: "profile",
+          parentid: {
+            [Op.in]: profileIds
+          }
+        },
+        attributes: [
+          "id",
+          "parentid", // needed for mapping
+          "occname",
+          "occtype"
+        ],
+        raw: true
+      });
+
+      const occupationMap = {};
+
+      occupations.forEach(occ => {
+        if (!occupationMap[occ.parentid]) {
+          occupationMap[occ.parentid] = [];
+        }
+
+        occupationMap[occ.parentid].push(occ);
+      });
+
+      profiles.forEach(profile => {
+        profile.setDataValue(
+          "occupations",
+          occupationMap[profile.id] || []
+        );
+      });
+    }
+
+
 
   const data = includePlan ? await attachPlans(profiles) : profiles;
 
