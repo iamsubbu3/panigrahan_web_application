@@ -1480,7 +1480,7 @@ export default function ProfilesSearch() {
             Page {page} of {pages} &nbsp;·&nbsp; {total} total
           </span>
           <button className="btn-secondary" onClick={() => load(page + 1)} disabled={page === pages}>Next →</button>
-        </div>
+        </div> 
       )}
 
     </div>

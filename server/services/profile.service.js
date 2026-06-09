@@ -1,4 +1,4 @@
-const { Profile, ProfileMatch, ProfilePlan, Attachment, gothras, Sequelize, User, Occupation, FamilyDetail } = require("../models");
+const { Profile, ProfileMatch, ProfilePlan, Attachment, gothras, Sequelize, User } = require("../models");
 const bcrypt = require("bcrypt");
 const { Op } = Sequelize;
 const sanitize = (val) => String(val).replace(/'/g, "''");
@@ -221,29 +221,12 @@ exports.create = async (data, userId, orgid) => {
     };
   }
 
-    const newProf = await Profile.create({
+  return Profile.create({
     ...data,
     createdby: userId,
     orgid: orgid,
     last_interaction: new Date()
   });
-
-  // FamilyDetail.bulkCreate(
-  //   (data.familyMembers || []).map(fm => ({
-  //     ...fm,
-  //     profileid: newProf.id
-  //   }))
-  // );
-
-  for (const fm of data.familyMembers) {
-    const familyData = {
-      ...fm,
-      profileid: newProf.id
-    };
-    const x = await FamilyDetail.create(familyData);
-  }
-
-  return newProf;
 };
 
 exports.findAll = () => {
@@ -292,8 +275,6 @@ exports.update = async (id, data, userId) => {
   const profile = await Profile.findByPk(id);
   if (!profile) return null;
 
-  const { familyMembers, ...profileData } = data;
-
   // ALWAYS check uniqueness if client_id is provided
   if (data.client_id) {
     const exists = await Profile.findOne({
@@ -312,32 +293,11 @@ exports.update = async (id, data, userId) => {
     }
   }
 
-    const updProf = profile.update({
+  return profile.update({
     ...data,
     updatedby: userId,
     last_interaction: new Date()
   });
-
-   for (const member of familyMembers) {
-    // const existing = await FamilyDetail.findOne({
-    //   where: {
-    //     profileid: id,
-    //     relationtype: member.relationtype
-    //   }
-    // });
-    const existing = await FamilyDetail.findByPk(member.id);
-    if (existing) {
-      await existing.update(member);
-    } else {
-      if (member.firstname) {
-        await FamilyDetail.create({
-          ...member,
-          profileid: id
-        });
-      }
-    }
-  }
-  return updProf;
 };
 
 exports.remove = async (id) => {
@@ -367,7 +327,7 @@ exports.setProfilePicture = async (profileId, attachmentId) => {
 };
 
 /* Main search — all profiles visible, paginated, optional plan filters */
-exports.searchWithMatchCount = async (filters, includePlan = false, page = 1, limit = 15) => {
+exports.searchWithMatchCount = async (filters, includePlan = false, page = 1, limit = 14) => {
   const where  = buildWhere(filters);
   const offset = (page - 1) * limit;
 
@@ -413,8 +373,7 @@ exports.searchWithMatchCount = async (filters, includePlan = false, page = 1, li
     },
     include: [
       { model: ProfileMatch, attributes: [], where : { status : 1 }, required: false },
-      { model: Attachment, as: "profilePicture", attributes: ["file_url"], required: false },
-      { model: Occupation, as: "occupations", attributes: ["id", "occname", "occtype"]}
+      { model: Attachment, as: "profilePicture", attributes: ["file_url"], required: false }
     ],
     order: [["createdon", "DESC"]],
     group: ["Profile.id", "profilePicture.id"],
