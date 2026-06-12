@@ -186,10 +186,7 @@ resource "aws_s3_bucket_cors_configuration" "uploads_cors" {
       "HEAD"
     ]
 
-    allowed_origins = [
-      "https://panigrahanam.in",
-      "http://localhost:5173"
-    ]
+    allowed_origins = ["*"]
 
     expose_headers = ["ETag"]
 
