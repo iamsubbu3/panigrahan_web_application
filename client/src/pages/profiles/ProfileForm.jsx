@@ -184,8 +184,8 @@ export default function ProfileForm() {
       const nameB = b.gothraname;
       return nameA.localeCompare(nameB);
     });
-    setGothras(sorted);
-  }).catch(() => setGothras([]));
+      setGothras(sorted);
+    }).catch(() => setGothras([]));
 
     if (!isEdit) return;
     setLoading(true);
@@ -212,7 +212,9 @@ export default function ProfileForm() {
     });
   }, [id]);
 
-  
+  const onChange = (e) => {
+    const { name, value } = e.target;
+
     //maritalsts
     if (name === "maritalsts") {
     const selectedStatus = enums?.maritalsts?.options?.find(
@@ -231,8 +233,7 @@ export default function ProfileForm() {
     return;
   }
 
-  const onChange = (e) => {
-    const { name, value } = e.target;
+  //other fields 
    setForm(prev => ({ ...prev, [name]: value })); //to overcome stale state issue
 
     if (name === "gothra") {
@@ -244,7 +245,8 @@ export default function ProfileForm() {
       setSelectedMamaGothra(g);
     }
 
-    
+  };
+
   const updateFamilyMember = (index, field, value) => {
     const updated = [...familyMembers];
 
@@ -256,7 +258,9 @@ export default function ProfileForm() {
     // console.log(updated);
     setFamilyMembers(updated);
   };
-  };
+
+
+
 
   const submit = async (e) => {
     e.preventDefault();
@@ -266,11 +270,11 @@ export default function ProfileForm() {
       if (isEdit) {
         if (form.birthstar == "") form.birthstar = null;
         if (form.starpada == "") form.starpada = null;
-        await updateProfile(id, form);
         await updateProfile(id, {...form, familyMembers});
         navigate(`/profiles/${id}`);
       } else {
 
+        
         const payload = {
           ...form,
           familyMembers
@@ -721,7 +725,6 @@ export default function ProfileForm() {
           </div>
         </div>
 
-        
         
 
         <div className="pf-card">
