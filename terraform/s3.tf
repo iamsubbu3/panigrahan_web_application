@@ -186,9 +186,15 @@ resource "aws_s3_bucket_cors_configuration" "uploads_cors" {
       "HEAD"
     ]
 
-    allowed_origins = ["*"]
+    allowed_origins = [
+      "https://panigrahanam.in",
+      "http://localhost:5173"
+    ]
 
-    expose_headers = ["ETag"]
+    expose_headers = [
+      "ETag",
+      "Access-Control-Allow-Origin"
+    ]
 
     max_age_seconds = 3000
   }

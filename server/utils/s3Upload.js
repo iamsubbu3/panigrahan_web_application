@@ -29,7 +29,12 @@ const uploadToS3 = async (file) => {
     Body: file.buffer,
 
     // Content type
-    ContentType: file.mimetype
+    ContentType: file.mimetype,
+
+    // VERY IMPORTANT FIXES
+    CacheControl: "no-cache",
+
+    ContentDisposition: "inline"
   };
 
   // Upload to S3
