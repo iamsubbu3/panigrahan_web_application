@@ -408,7 +408,7 @@ exports.searchWithMatchCount = async (filters, includePlan = false, page = 1, li
     include: [
       { model: ProfileMatch, attributes: [], where : { status : 1 }, required: false },
       { model: Attachment, as: "profilePicture", attributes: ["file_url"], required: false },
-      { model: Occupation, as: "occupations", attributes: ["id", "occname", "occtype"]}
+      // { model: Occupation, as: "occupations", attributes: ["id", "occname", "occtype"]}
     ],
     order: [["createdon", "DESC"]],
     group: ["Profile.id", "profilePicture.id"],
