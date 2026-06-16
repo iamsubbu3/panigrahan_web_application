@@ -1253,6 +1253,9 @@ export default function ProfileView() {
                 familyids={family
                   .filter(m => Number(m.relationtype) === 1 || Number(m.relationtype) === 2)
                   .map(m => m.id)}
+                onDone={async () => {
+                  await loadFamilyAddresses(family);
+                }}
               />
 
               <div style={{

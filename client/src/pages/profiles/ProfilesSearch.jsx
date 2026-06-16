@@ -795,13 +795,13 @@ export default function ProfilesSearch() {
               <button className="ps-action-btn" style={{ fontSize: "11px", padding: "4px 10px" }}
                 onClick={async () => {
                   const reason = window.prompt("Enter reason for inactivating this profile:");
-                  if (reason !== null) { await changests(p.id, 2, reason); load(page); }
+                  if (reason !== null) { await changests(p.id, 2, reason); await load(page); }
                 }}>
                 Inactivate
               </button>
             ) : (
               <button className="ps-action-btn" style={{ fontSize: "11px", padding: "4px 10px" }}
-                onClick={async () => { if (window.confirm("Activate this profile?")) { await changests(p.id, 1); load(page); } }}>
+                onClick={async () => { if (window.confirm("Activate this profile?")) { await changests(p.id, 1); await load(page); } }}>
                 Activate
               </button>
             )}
@@ -1437,7 +1437,7 @@ export default function ProfilesSearch() {
                       </td>
                       <td className="ps-td">
                         {plan?.subscription_name
-                          ? <span className="badge badge-neutral">{subLabel[plan.subscription_name] || plan.subscription_name}</span>
+                          ? <span className="badge badge-neutral">{subLabel[plan?.subscription_name] || plan?.subscription_name}</span>
                           : <span style={{ color: "var(--ink-3)" }}>—</span>}
                       </td>
                       <td className="ps-td">

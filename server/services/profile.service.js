@@ -285,7 +285,7 @@ exports.update = async (id, data, userId) => {
   const profile = await Profile.findByPk(id);
   if (!profile) return null;
 
-  const { familyMembers, ...profileData } = data;
+  const { familyMembers = [], ...profileData } = data;
 
   // ALWAYS check uniqueness if client_id is provided
   if (data.client_id) {
@@ -305,8 +305,8 @@ exports.update = async (id, data, userId) => {
     }
   }
 
-  const updProf =  profile.update({
-    ...data,
+  const updProf =  await profile.update({
+    ...profileData,
     updatedby: userId,
     last_interaction: new Date()
   });
