@@ -13,7 +13,7 @@ export const COMPANY = {
   contact:  "Venkatesh Babu (s/o Arjunaiah)",
   phone:    "9844085118, 900848474",
   Email:    "avkvkhoro@gmail.com"
-}; 
+};
 
 export const api = async (url, options = {}) => {
   const token = localStorage.getItem("token");
