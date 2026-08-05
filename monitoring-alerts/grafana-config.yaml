@@ -1,11 +1,32 @@
-  [smtp]
-  enabled = true
-  host = smtp.gmail.com:587
-  user = subramanyam9979@gmail.com
-  password = ssfzsrpbggxpfnhm
-  from_address = subramanyam9979@gmail.com
-  from_name = Grafana Alerts
-  skip_verify = true
+grafana:
 
-  [unified_alerting]
-  enabled = true
+  persistence:
+    enabled: true
+    type: pvc
+    storageClassName: gp3-storage
+    accessModes:
+      - ReadWriteOnce
+    size: 2Gi
+
+  service:
+    type: NodePort
+    nodePort: 32000
+
+  assertNoLeakedSecrets: false
+  grafana.ini:
+    smtp:
+      enabled: true
+      host: smtp.gmail.com:587
+      user: subramanyam9979@gmail.com
+      password: jdgluylqbdbfvfwu
+      from_address: subramanyam9979@gmail.com
+      from_name: Grafana Alerts
+      skip_verify: true
+
+    unified_alerting:
+      enabled: true
+
+prometheus:
+  service:
+    type: NodePort
+    nodePort: 30090

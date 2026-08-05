@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mysql-exporter-monitor
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus-mysql-exporter
+      app.kubernetes.io/instance: mysql-exporter
+  endpoints:
+  - port: mysql-exporter
+    interval: 30s

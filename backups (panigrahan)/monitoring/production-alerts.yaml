@@ -1,0 +1,152 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+
+metadata:
+  name: production-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring
+
+spec:
+  groups:
+
+  ############################################################
+  # INFRASTRUCTURE ALERTS
+  ############################################################
+
+  - name: infrastructure-alerts
+
+    rules:
+
+    - alert: HighCPUUsage
+
+      expr: 100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+
+      for: 2m
+
+      labels:
+        severity: warning
+
+      annotations:
+        summary: "High CPU Usage"
+        description: "CPU usage above 80%"
+
+    - alert: HighMemoryUsage
+
+      expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+
+      for: 2m
+
+      labels:
+        severity: critical
+
+      annotations:
+        summary: "High Memory Usage"
+        description: "Memory usage above 85%"
+
+    - alert: HighDiskUsage
+
+      expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 20
+
+      for: 2m
+
+      labels:
+        severity: critical
+
+      annotations:
+        summary: "Low Disk Space"
+        description: "Disk space below 20%"
+
+    - alert: NodeDown
+
+      expr: up{job="node-exporter"} == 0
+
+      for: 1m
+
+      labels:
+        severity: critical
+
+      annotations:
+        summary: "Node Down"
+        description: "k3s EC2 node is unreachable"
+
+  ############################################################
+  # KUBERNETES ALERTS
+  ############################################################
+
+  - name: kubernetes-alerts
+
+    rules:
+
+    - alert: PodCrashLoopBackOff
+
+      expr: kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"} == 1
+
+      for: 1m
+
+      labels:
+        severity: critical
+
+      annotations:
+        summary: "Pod CrashLoopBackOff"
+        description: "Pod is crashing repeatedly"
+
+    - alert: PodRestartingFrequently
+
+      expr: increase(kube_pod_container_status_restarts_total[10m]) > 3
+
+      for: 2m
+
+      labels:
+        severity: warning
+
+      annotations:
+        summary: "Pod Restarting Frequently"
+        description: "Container restarted more than 3 times"
+
+  ############################################################
+  # APPLICATION ALERTS
+  ############################################################
+
+  - name: application-alerts
+
+    rules:
+
+    - alert: BackendDown
+
+      expr: absent(kube_deployment_status_replicas_available{namespace="panigrahan",deployment="backend"}) OR kube_deployment_status_replicas_available{namespace="panigrahan",deployment="backend"} < 1
+
+      for: 1m
+
+      labels:
+        severity: critical
+
+      annotations:
+        summary: "Backend Down"
+        description: "Backend deployment has no available replicas"
+
+    - alert: FrontendDown
+
+      expr: absent(kube_deployment_status_replicas_available{namespace="panigrahan",deployment="frontend"}) OR kube_deployment_status_replicas_available{namespace="panigrahan",deployment="frontend"} < 1
+
+      for: 1m
+
+      labels:
+        severity: critical
+
+      annotations:
+        summary: "Frontend Down"
+        description: "Frontend deployment has no available replicas"
+
+    - alert: MySQLDown
+
+      expr: absent(kube_statefulset_status_replicas_ready{namespace="panigrahan",statefulset="mysql"}) OR kube_statefulset_status_replicas_ready{namespace="panigrahan",statefulset="mysql"} < 1
+
+      for: 1m
+
+      labels:
+        severity: critical
+
+      annotations:
+        summary: "MySQL Down"
+        description: "MySQL StatefulSet not ready"

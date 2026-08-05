@@ -1,0 +1,11 @@
+grafana:
+  persistence:
+    enabled: true
+    type: pvc
+    storageClassName: local-path
+    accessModes:
+      - ReadWriteOnce
+    size: 2Gi
+
+  initChownData:
+    enabled: false
